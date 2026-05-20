@@ -15,6 +15,7 @@ export default function HomePage() {
   const { user, loading: userLoading } = useUser()
   const [questions, setQuestions] = useState<Question[]>([])
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({})
+  const [distribution, setDistribution] = useState<Record<string, Record<number, number>>>({})
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<LeagueFilter>('all')
 
@@ -33,9 +34,27 @@ export default function HomePage() {
       .select('*')
       .eq('status', 'open')
       .order('deadline', { ascending: true })
-    // Only show questions that haven't expired yet
-    if (data) setQuestions(data.filter(q => !isPast(new Date(q.deadline))))
+    if (data) {
+      const open = data.filter(q => !isPast(new Date(q.deadline)))
+      setQuestions(open)
+      if (open.length > 0) fetchDistribution(open.map(q => q.id))
+    }
     setLoading(false)
+  }
+
+  const fetchDistribution = async (ids: string[]) => {
+    const { data } = await supabase
+      .from('predictions')
+      .select('question_id, chosen_option')
+      .in('question_id', ids)
+    if (data) {
+      const dist: Record<string, Record<number, number>> = {}
+      data.forEach(p => {
+        if (!dist[p.question_id]) dist[p.question_id] = {}
+        dist[p.question_id][p.chosen_option] = (dist[p.question_id][p.chosen_option] ?? 0) + 1
+      })
+      setDistribution(dist)
+    }
   }
 
   const fetchUserPredictions = async () => {
@@ -53,6 +72,11 @@ export default function HomePage() {
 
   const handlePredicted = (prediction: Prediction) => {
     setPredictions(prev => ({ ...prev, [prediction.question_id]: prediction }))
+    setDistribution(prev => {
+      const qDist = { ...(prev[prediction.question_id] ?? {}) }
+      qDist[prediction.chosen_option] = (qDist[prediction.chosen_option] ?? 0) + 1
+      return { ...prev, [prediction.question_id]: qDist }
+    })
   }
 
   const handleExpired = (questionId: string) => {
@@ -141,6 +165,7 @@ export default function HomePage() {
                 prediction={predictions[q.id]}
                 onPredicted={handlePredicted}
                 onExpired={handleExpired}
+                distribution={distribution[q.id]}
               />
             ))}
           </div>

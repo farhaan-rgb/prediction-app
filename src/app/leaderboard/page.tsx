@@ -62,10 +62,38 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Score explanation */}
-      <div className="bg-[#0f1320] border border-[#1e2438] rounded-xl p-3 mb-5 flex items-start gap-3">
-        <span className="text-lg mt-0.5">⚡</span>
+      <div className="bg-[#0f1320] border border-[#1e2438] rounded-xl p-4 mb-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-base">⚡</span>
+          <p className="text-sm font-bold text-white">How ratings work</p>
+        </div>
         <p className="text-xs text-[#8892aa] leading-relaxed">
-          Rating = <span className="text-white font-semibold">accuracy × √predictions × 100</span>. More correct picks and higher accuracy both boost your rank.
+          Your rating rewards <span className="text-white font-semibold">both accuracy and volume</span> — being right matters, but so does making more predictions.
+        </p>
+        <div className="bg-[#080b14] rounded-lg p-3 space-y-1">
+          <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-2">Formula</p>
+          <p className="text-sm font-mono text-indigo-300">rating = (correct ÷ total) × √total × 100</p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Examples</p>
+          {[
+            { correct: 1, total: 1, note: 'lucky once' },
+            { correct: 3, total: 5, note: 'getting started' },
+            { correct: 5, total: 7, note: 'consistent' },
+            { correct: 8, total: 10, note: 'sharp' },
+          ].map(({ correct, total, note }) => {
+            const rating = Math.round((correct / total) * Math.sqrt(total) * 100)
+            const acc = Math.round((correct / total) * 100)
+            return (
+              <div key={note} className="flex items-center justify-between text-xs">
+                <span className="text-[#4a5568]">{correct}/{total} correct <span className="text-[#2a3050]">·</span> {acc}% acc <span className="text-[#2a3050]">·</span> <span className="text-[#8892aa] italic">{note}</span></span>
+                <span className="font-bold text-amber-400">{rating}</span>
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-[10px] text-[#4a5568] leading-relaxed">
+          Getting lucky on 1 prediction (rating: 100) ranks lower than someone who went 8/10 (rating: 253). Skill over luck.
         </p>
       </div>
 

@@ -12,6 +12,7 @@ interface Props {
   prediction?: Prediction
   onPredicted: (prediction: Prediction) => void
   onExpired?: (questionId: string) => void
+  distribution?: Record<number, number>
 }
 
 const LEAGUE_CONFIG = {
@@ -76,7 +77,7 @@ function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?:
   )
 }
 
-export default function QuestionCard({ question, prediction, onPredicted, onExpired }: Props) {
+export default function QuestionCard({ question, prediction, onPredicted, onExpired, distribution }: Props) {
   const { user } = useUser()
   const { isExpired } = useCountdown(question.deadline)
   const [submitting, setSubmitting] = useState(false)
@@ -86,6 +87,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
   const isResolved = question.status === 'resolved'
   const canPredict = user && !prediction && !isExpired && !localExpired && question.status === 'open'
   const wonPoints = isResolved && prediction && prediction.chosen_option === question.correct_option
+  const totalVotes = Object.values(distribution ?? {}).reduce((a, b) => a + b, 0)
 
   const handlePredict = async (optionIndex: number) => {
     if (!canPredict) return
@@ -156,37 +158,61 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
         <h3 className="text-base font-bold text-white leading-snug mb-4">{question.title}</h3>
 
         {/* Options */}
-        <div className="space-y-2.5">
-          {question.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => handlePredict(index)}
-              disabled={!canPredict || submitting}
-              className={`w-full text-left px-4 py-3.5 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 ${getOptionStyle(index)}`}
-            >
-              <span className="flex-1 leading-snug">{option}</span>
-              <span className="flex-shrink-0">
-                {isResolved && question.correct_option === index && (
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+        <div className="space-y-2">
+          {question.options.map((option, index) => {
+            const count = distribution?.[index] ?? 0
+            const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
+            const isChosen = prediction?.chosen_option === index
+            const isCorrect = question.correct_option === index
+
+            const barColor = isResolved
+              ? isCorrect ? 'bg-emerald-500' : isChosen ? 'bg-red-500' : 'bg-[#2a3050]'
+              : isChosen ? 'bg-indigo-500' : 'bg-[#2a3050]'
+
+            return (
+              <div key={index}>
+                <button
+                  onClick={() => handlePredict(index)}
+                  disabled={!canPredict || submitting}
+                  className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 ${getOptionStyle(index)}`}
+                >
+                  <span className="flex-1 leading-snug">{option}</span>
+                  <span className="flex items-center gap-2 flex-shrink-0">
+                    {totalVotes > 0 && (
+                      <span className="text-xs font-bold tabular-nums opacity-80">{pct}%</span>
+                    )}
+                    {isResolved && isCorrect && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                    {isResolved && isChosen && !isCorrect && <XCircle className="w-4 h-4 text-red-400" />}
+                    {!isResolved && isChosen && <Zap className="w-4 h-4 text-indigo-400" />}
+                  </span>
+                </button>
+                {totalVotes > 0 && (
+                  <div className="h-1 rounded-full bg-[#1a1f35] mx-1 mt-0.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 )}
-                {isResolved && prediction?.chosen_option === index && question.correct_option !== index && (
-                  <XCircle className="w-4 h-4 text-red-400" />
-                )}
-                {!isResolved && prediction?.chosen_option === index && (
-                  <Zap className="w-4 h-4 text-indigo-400" />
-                )}
-              </span>
-            </button>
-          ))}
+              </div>
+            )
+          })}
         </div>
 
-        {/* Footer hint */}
-        {canPredict && (
-          <p className="text-center text-xs text-[#4a5568] mt-3">Tap an option to lock in your prediction</p>
-        )}
-        {!user && !isExpired && (
-          <p className="text-center text-xs text-indigo-400 mt-3 font-medium">Sign in to predict</p>
-        )}
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-3">
+          {totalVotes > 0 && (
+            <p className="text-xs text-[#4a5568]">{totalVotes} {totalVotes === 1 ? 'pick' : 'picks'} so far</p>
+          )}
+          {canPredict && (
+            <p className={`text-xs text-[#4a5568] ${totalVotes > 0 ? 'ml-auto' : 'w-full text-center'}`}>
+              Tap an option to lock in your prediction
+            </p>
+          )}
+          {!user && !isExpired && (
+            <p className="text-xs text-indigo-400 font-medium w-full text-center">Sign in to predict</p>
+          )}
+        </div>
       </div>
     </div>
   )
