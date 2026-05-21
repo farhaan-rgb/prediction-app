@@ -19,6 +19,7 @@ interface GeneratedQuestion {
   question_type: QuestionType
   options: string[]
   deadline_offset_hours: number
+  resolve_after_offset_hours: number
   context: string
 }
 
@@ -54,9 +55,12 @@ Rules:
 - Each question must have 2-4 plausible, distinct options
 - question_type must be one of: match_winner, top_scorer, top_bowler, team_total, player_milestone, toss
 - context: 2-3 sentences of relevant historical stats (recent form, head-to-head, player averages) that help users make an informed prediction
-- deadline_offset_hours: hours from NOW until 30 minutes before the match starts
-  Example: if a match starts at 7:30 PM IST and current time is 10:00 AM IST, that's 9.5h away, so deadline = 9h (30min before)
-- For IPL evening matches: typically start at 7:30 PM IST. For afternoon: 3:30 PM IST
+- deadline_offset_hours: hours from NOW until 30 minutes before match start (predictions close)
+  IPL evening matches start 7:30 PM IST; afternoon 3:30 PM IST
+  Example: match at 7:30 PM IST, current time 10:00 AM IST → 9.5h to start → deadline = 9h
+- resolve_after_offset_hours: hours from NOW until the match result will be known (match end)
+  IPL matches last ~3.5 hours; NBA ~2.5 hours
+  Example: match at 7:30 PM IST, ends ~11 PM IST, current time 10:00 AM IST → resolve_after = 13h
 - Respond with JSON: { "questions": [...] }`,
         },
         {
@@ -73,6 +77,7 @@ JSON format for each:
   "question_type": "match_winner",
   "options": ["Team A", "Team B"],
   "deadline_offset_hours": 9,
+  "resolve_after_offset_hours": 13,
   "context": "Team A have won 4 of their last 5 games..."
 }`,
         },
@@ -92,6 +97,7 @@ JSON format for each:
       options: q.options,
       context: q.context,
       deadline: new Date(now.getTime() + q.deadline_offset_hours * 60 * 60 * 1000).toISOString(),
+      resolve_after: new Date(now.getTime() + q.resolve_after_offset_hours * 60 * 60 * 1000).toISOString(),
       status: 'open',
     }))
 

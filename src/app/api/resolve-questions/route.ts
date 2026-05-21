@@ -40,12 +40,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Find questions whose deadline has passed but are still open
+    // Find questions where result should now be available (resolve_after has passed)
+    // Falls back to deadline-only check for questions without resolve_after set
+    const now = new Date().toISOString()
     const { data: expiredQuestions } = await supabase
       .from('questions')
-      .select('id, title, options, category')
+      .select('id, title, options, category, resolve_after')
       .eq('status', 'open')
-      .lt('deadline', new Date().toISOString())
+      .or(`resolve_after.lt.${now},and(resolve_after.is.null,deadline.lt.${now})`)
 
     if (!expiredQuestions?.length) {
       return NextResponse.json({ message: 'No expired questions to resolve', resolved: 0 })

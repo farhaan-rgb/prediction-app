@@ -20,6 +20,7 @@ export interface Question {
   options: string[]
   correct_option: number | null
   deadline: string
+  resolve_after: string | null
   status: QuestionStatus
   context: string | null
   created_at: string
