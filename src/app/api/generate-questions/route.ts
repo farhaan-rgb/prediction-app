@@ -107,8 +107,35 @@ Return ONLY valid JSON in this exact format, no other text:
     }))
 
     const { error, data } = await supabase.from('questions').insert(rows).select('id')
-
     if (error) throw error
+
+    // Auto-seed opinions from bot users so new questions feel active
+    const SEED_USERNAMES = ['CricketGuru99', 'HoopDreamer', 'SixHitter', 'ThreePointer7', 'ViratFanatic', 'NBATitan', 'KKRLoyalist', 'SpursNation', 'IPLKing2026', 'NBAOracle']
+    const { data: seedUsers } = await supabase.from('users').select('id').in('username', SEED_USERNAMES)
+
+    if (seedUsers && seedUsers.length > 0 && data) {
+      const weightedRandom = (optCount: number) => {
+        // Random weights with slight bias toward first option (the "favorite")
+        const weights = Array.from({ length: optCount }, () => Math.random())
+        weights[0] += 0.3
+        const total = weights.reduce((a, b) => a + b, 0)
+        let rand = Math.random() * total
+        for (let i = 0; i < weights.length; i++) {
+          rand -= weights[i]
+          if (rand <= 0) return i
+        }
+        return optCount - 1
+      }
+
+      const opinionRows = seedUsers.flatMap(user =>
+        rows.map((q, i) => ({
+          user_id: user.id,
+          question_id: data[i].id,
+          chosen_option: weightedRandom(q.options.length),
+        }))
+      )
+      await supabase.from('predictions').insert(opinionRows)
+    }
 
     return NextResponse.json({
       success: true,

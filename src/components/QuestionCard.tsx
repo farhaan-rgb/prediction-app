@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Question, Prediction } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/context/UserContext'
 import { useCountdown } from '@/hooks/useCountdown'
-import { CheckCircle, XCircle, Zap } from 'lucide-react'
+import { CheckCircle, XCircle, Zap, ChevronRight } from 'lucide-react'
 
 interface Props {
   question: Question
@@ -65,13 +66,17 @@ function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?:
     urgency === 'soon' ? 'bg-amber-400' :
     'bg-emerald-400'
 
-  const display = hours > 0
-    ? `${hours}h ${minutes}m`
-    : `${minutes}m ${seconds}s`
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const days = Math.floor(hours / 24)
+  const h = hours % 24
+
+  const display = days >= 1
+    ? `${days}d ${h}h`
+    : `${pad(h)}:${pad(minutes)}:${pad(seconds)}`
 
   return (
-    <span className={`text-xs font-semibold flex items-center gap-1.5 ${colorClass}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dotClass} ${urgency === 'critical' ? 'animate-pulse' : ''}`} />
+    <span className={`text-xs font-bold font-mono flex items-center gap-1.5 ${colorClass}`}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotClass} ${urgency === 'critical' ? 'animate-pulse' : ''}`} />
       {display}
     </span>
   )
@@ -155,7 +160,10 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
         </div>
 
         {/* Question */}
-        <h3 className="text-base font-bold text-white leading-snug mb-4">{question.title}</h3>
+        <Link href={`/questions/${question.id}`} className="group flex items-start justify-between gap-2 mb-4">
+          <h3 className="text-base font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">{question.title}</h3>
+          <ChevronRight className="w-4 h-4 text-[#2a3050] group-hover:text-indigo-400 flex-shrink-0 mt-0.5 transition-colors" />
+        </Link>
 
         {/* Options */}
         <div className="space-y-2">
@@ -164,37 +172,40 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
             const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
             const isChosen = prediction?.chosen_option === index
             const isCorrect = question.correct_option === index
+            const maxCount = totalVotes > 0 ? Math.max(...question.options.map((_, i) => distribution?.[i] ?? 0)) : 0
+            const isLeading = totalVotes > 0 && count === maxCount && count > 0
 
-            const barColor = isResolved
-              ? isCorrect ? 'bg-emerald-500' : isChosen ? 'bg-red-500' : 'bg-[#2a3050]'
-              : isChosen ? 'bg-indigo-500' : 'bg-[#2a3050]'
+            const fillColor = isResolved
+              ? isCorrect ? 'bg-emerald-500' : isChosen ? 'bg-red-400' : 'bg-slate-500'
+              : isChosen ? 'bg-indigo-500'
+              : isLeading ? league.dot
+              : 'bg-slate-600'
 
             return (
-              <div key={index}>
-                <button
-                  onClick={() => handlePredict(index)}
-                  disabled={!canPredict || submitting}
-                  className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 ${getOptionStyle(index)}`}
-                >
-                  <span className="flex-1 leading-snug">{option}</span>
-                  <span className="flex items-center gap-2 flex-shrink-0">
-                    {totalVotes > 0 && (
-                      <span className="text-xs font-bold tabular-nums opacity-80">{pct}%</span>
-                    )}
-                    {isResolved && isCorrect && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-                    {isResolved && isChosen && !isCorrect && <XCircle className="w-4 h-4 text-red-400" />}
-                    {!isResolved && isChosen && <Zap className="w-4 h-4 text-indigo-400" />}
-                  </span>
-                </button>
+              <button
+                key={index}
+                onClick={() => handlePredict(index)}
+                disabled={!canPredict || submitting}
+                className={`relative overflow-hidden w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 ${getOptionStyle(index)}`}
+              >
                 {totalVotes > 0 && (
-                  <div className="h-1 rounded-full bg-[#1a1f35] mx-1 mt-0.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+                  <div
+                    className={`absolute inset-y-0 left-0 transition-all duration-700 opacity-20 ${fillColor}`}
+                    style={{ width: `${pct}%` }}
+                  />
                 )}
-              </div>
+                <span className="relative z-10 flex-1 leading-snug font-medium">{option}</span>
+                <span className="relative z-10 flex items-center gap-2 flex-shrink-0">
+                  {totalVotes > 0 && (
+                    <span className={`text-sm font-bold tabular-nums ${isLeading || isChosen ? 'opacity-100' : 'opacity-50'}`}>
+                      {pct}%
+                    </span>
+                  )}
+                  {isResolved && isCorrect && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                  {isResolved && isChosen && !isCorrect && <XCircle className="w-4 h-4 text-red-400" />}
+                  {!isResolved && isChosen && <Zap className="w-4 h-4 text-indigo-400" />}
+                </span>
+              </button>
             )
           })}
         </div>
