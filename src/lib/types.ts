@@ -10,14 +10,18 @@ export interface User {
   created_at: string
 }
 
+export type QuestionType = 'match_winner' | 'top_scorer' | 'top_bowler' | 'team_total' | 'player_milestone' | 'toss'
+
 export interface Question {
   id: string
   title: string
   category: Category
+  question_type: QuestionType | null
   options: string[]
   correct_option: number | null
   deadline: string
   status: QuestionStatus
+  context: string | null
   created_at: string
 }
 

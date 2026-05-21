@@ -8,6 +8,15 @@ import { useUser } from '@/context/UserContext'
 import { useCountdown } from '@/hooks/useCountdown'
 import { ArrowLeft, Users, CheckCircle, XCircle, Zap, Trophy } from 'lucide-react'
 
+const TYPE_CONFIG = {
+  match_winner:     { label: 'Match Prediction', icon: '🏆' },
+  top_scorer:       { label: 'Top Scorer',        icon: '🏏' },
+  top_bowler:       { label: 'Top Bowler',         icon: '🎯' },
+  team_total:       { label: 'Team Total',         icon: '📊' },
+  player_milestone: { label: 'Player Milestone',   icon: '⭐' },
+  toss:             { label: 'Toss',               icon: '🪙' },
+}
+
 const LEAGUE_CONFIG = {
   ipl: {
     label: 'IPL 2026',
@@ -120,6 +129,7 @@ export default function QuestionDetailPage() {
   }
 
   const league = LEAGUE_CONFIG[question.category as keyof typeof LEAGUE_CONFIG] ?? LEAGUE_CONFIG.current_events
+  const typeConfig = question.question_type ? TYPE_CONFIG[question.question_type] : null
   const isResolved = question.status === 'resolved'
   const totalVotes = Object.values(distribution).reduce((a, b) => a + b, 0)
   const maxCount = totalVotes > 0 ? Math.max(...question.options.map((_, i) => distribution[i] ?? 0)) : 0
@@ -145,6 +155,11 @@ export default function QuestionDetailPage() {
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${league.bg} ${league.border} ${league.text}`}>
               {league.label}
             </span>
+            {typeConfig && (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1a1f35] border border-[#2a3050] text-[#8892aa]">
+                {typeConfig.icon} {typeConfig.label}
+              </span>
+            )}
             {isResolved ? (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">Resolved</span>
             ) : (
@@ -169,6 +184,16 @@ export default function QuestionDetailPage() {
                   <span className="text-lg font-bold text-white">{totalVotes}</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Context / Historical Stats */}
+          {question.context && (
+            <div className="bg-[#080b14] border border-[#1e2438] rounded-xl p-4 mb-5">
+              <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-2">
+                {typeConfig ? `${typeConfig.icon} ${typeConfig.label} — Context` : '📋 Context'}
+              </p>
+              <p className="text-sm text-[#8892aa] leading-relaxed">{question.context}</p>
             </div>
           )}
 
