@@ -13,19 +13,28 @@ const env = Object.fromEntries(
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
 
-const { data: recent } = await supabase
-  .from('questions').select('title')
-  .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-
-const recentTitles = recent?.map(q => q.title) ?? []
+// Delete all existing open questions
+console.log('Deleting all existing open questions...')
+const { error: deleteError } = await supabase.from('questions').delete().eq('status', 'open')
+if (deleteError) throw deleteError
+console.log('Deleted existing open questions.\n')
 
 const nowIST = new Date().toLocaleString('en-US', {
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
 })
 
+const todayIST = new Date().toLocaleDateString('en-US', {
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
+})
+
+const tomorrowIST = new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
+})
+
 console.log(`Generating questions for ${nowIST} (IST)...`)
-if (recentTitles.length) console.log(`Avoiding ${recentTitles.length} recent questions.`)
+console.log(`Today: ${todayIST}`)
+console.log(`Tomorrow: ${tomorrowIST}\n`)
 
 const completion = await openai.chat.completions.create({
   model: 'gpt-4o',
@@ -33,27 +42,28 @@ const completion = await openai.chat.completions.create({
   messages: [
     {
       role: 'system',
-      content: `You are a sports prediction question generator for IPL 2026 and NBA playoffs.
-Generate questions about upcoming matches in the next 7 days.
+      content: `You are a sports prediction question generator for IPL 2026.
+Your task: find the IPL matches scheduled for today (${todayIST}) and tomorrow (${tomorrowIST}) and generate exactly 5 prediction questions per match.
+
 Rules:
 - Only ask about future events whose outcomes are not yet known
 - Each question must have 2-4 plausible, distinct options
 - question_type must be one of: match_winner, top_scorer, top_bowler, team_total, player_milestone, toss
-- context: 2-3 sentences of relevant historical stats that help users predict
-- deadline_offset_hours: hours from NOW until 30 minutes before match start
-  IPL evening matches start 7:30 PM IST; afternoon 3:30 PM IST
-- resolve_after_offset_hours: hours from NOW until the match result will be known
-  IPL matches last ~3.5 hours; NBA ~2.5 hours
-- Respond with JSON: { "questions": [...] }`,
+- Vary question types across the 5 questions per match (don't repeat same type for same match)
+- context: 2-3 sentences of relevant recent form, head-to-head stats, or player stats that help users predict
+- deadline_offset_hours: hours from NOW until 30 minutes before that match starts
+  IPL evening matches start 7:30 PM IST; afternoon matches start 3:30 PM IST
+- resolve_after_offset_hours: hours from NOW until the match result will be known (match start + 4 hours)
+- match_tag: a short identifier for which match (e.g. "MI vs CSK - May 21") so questions are grouped
+- Respond with JSON: { "matches": [{ "match_tag": "...", "match_date": "today|tomorrow", "questions": [...] }] }`,
     },
     {
       role: 'user',
       content: `Current time: ${nowIST} (IST)
 
-${recentTitles.length > 0 ? `Do NOT repeat these recent questions:\n${recentTitles.map(t => `- ${t}`).join('\n')}\n` : ''}
-Generate 10 prediction questions: 7 about IPL 2026 and 3 about NBA playoffs.
+Generate 5 prediction questions for EACH IPL 2026 match scheduled today (${todayIST}) and tomorrow (${tomorrowIST}).
 
-JSON format:
+Each question JSON:
 {
   "title": "...",
   "category": "ipl",
@@ -68,15 +78,24 @@ JSON format:
 })
 
 const parsed = JSON.parse(completion.choices[0].message.content ?? '{}')
-const questions = parsed.questions ?? []
+const matches = parsed.matches ?? []
 
-if (!questions.length) throw new Error('No questions returned')
-console.log(`\nGPT-4o generated ${questions.length} questions.`)
+if (!matches.length) throw new Error('No matches returned')
+
+let allQuestions = []
+for (const match of matches) {
+  console.log(`Match: ${match.match_tag} (${match.match_date})`)
+  console.log(`  ${match.questions?.length ?? 0} questions`)
+  allQuestions = allQuestions.concat(match.questions ?? [])
+}
+console.log(`\nTotal: ${allQuestions.length} questions across ${matches.length} match(es)\n`)
+
+if (!allQuestions.length) throw new Error('No questions generated')
 
 const now = new Date()
 const SEED_USERNAMES = ['CricketGuru99', 'HoopDreamer', 'SixHitter', 'ThreePointer7', 'ViratFanatic', 'NBATitan', 'KKRLoyalist', 'SpursNation', 'IPLKing2026', 'NBAOracle']
 
-const rows = questions.map(q => ({
+const rows = allQuestions.map(q => ({
   title: q.title,
   category: q.category,
   question_type: q.question_type,
@@ -107,5 +126,9 @@ if (seedUsers?.length) {
 }
 
 console.log(`\nInserted ${data.length} questions:`)
-data.forEach((q, i) => console.log(`  ${i + 1}. ${q.title}`))
+matches.forEach(match => {
+  console.log(`\n  [${match.match_tag}]`)
+  const matchTitles = match.questions?.map(q => q.title) ?? []
+  matchTitles.forEach((t, i) => console.log(`    ${i + 1}. ${t}`))
+})
 console.log('\nDone!')

@@ -15,12 +15,18 @@ type QuestionType = 'match_winner' | 'top_scorer' | 'top_bowler' | 'team_total' 
 
 interface GeneratedQuestion {
   title: string
-  category: 'ipl' | 'nba'
+  category: 'ipl'
   question_type: QuestionType
   options: string[]
   deadline_offset_hours: number
   resolve_after_offset_hours: number
   context: string
+}
+
+interface GeneratedMatch {
+  match_tag: string
+  match_date: 'today' | 'tomorrow'
+  questions: GeneratedQuestion[]
 }
 
 export async function GET(req: NextRequest) {
@@ -30,17 +36,21 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { data: recentQuestions } = await supabase
-      .from('questions')
-      .select('title')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-
-    const recentTitles = recentQuestions?.map(q => q.title) ?? []
-
     const nowIST = new Date().toLocaleString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
     })
+
+    const todayIST = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
+    })
+
+    const tomorrowIST = new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
+    })
+
+    // Delete all existing open questions before generating fresh ones
+    await supabase.from('questions').delete().eq('status', 'open')
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -48,29 +58,27 @@ export async function GET(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You are a sports prediction question generator for IPL 2026 and NBA playoffs.
-Generate questions about upcoming matches in the next 7 days.
+          content: `You are a sports prediction question generator for IPL 2026.
+Your task: find the IPL matches scheduled for today (${todayIST}) and tomorrow (${tomorrowIST}) and generate exactly 5 prediction questions per match.
+
 Rules:
 - Only ask about future events whose outcomes are not yet known
 - Each question must have 2-4 plausible, distinct options
 - question_type must be one of: match_winner, top_scorer, top_bowler, team_total, player_milestone, toss
-- context: 2-3 sentences of relevant historical stats (recent form, head-to-head, player averages) that help users make an informed prediction
-- deadline_offset_hours: hours from NOW until 30 minutes before match start (predictions close)
-  IPL evening matches start 7:30 PM IST; afternoon 3:30 PM IST
-  Example: match at 7:30 PM IST, current time 10:00 AM IST → 9.5h to start → deadline = 9h
-- resolve_after_offset_hours: hours from NOW until the match result will be known (match end)
-  IPL matches last ~3.5 hours; NBA ~2.5 hours
-  Example: match at 7:30 PM IST, ends ~11 PM IST, current time 10:00 AM IST → resolve_after = 13h
-- Respond with JSON: { "questions": [...] }`,
+- Vary question types across the 5 questions per match (no repeated types within the same match)
+- context: 2-3 sentences of relevant recent form, head-to-head stats, or player stats that help users predict
+- deadline_offset_hours: hours from NOW until 30 minutes before that match starts
+  IPL evening matches start 7:30 PM IST; afternoon matches start 3:30 PM IST
+- resolve_after_offset_hours: hours from NOW until the match result will be known (match start + 4 hours)
+- Respond with JSON: { "matches": [{ "match_tag": "...", "match_date": "today|tomorrow", "questions": [...] }] }`,
         },
         {
           role: 'user',
           content: `Current time: ${nowIST} (IST)
 
-${recentTitles.length > 0 ? `Do NOT repeat or closely paraphrase these recent questions:\n${recentTitles.map(t => `- ${t}`).join('\n')}\n` : ''}
-Generate 10 prediction questions: 7 about IPL 2026 and 3 about NBA playoffs.
+Generate 5 prediction questions for EACH IPL 2026 match scheduled today (${todayIST}) and tomorrow (${tomorrowIST}).
 
-JSON format for each:
+Each question JSON:
 {
   "title": "...",
   "category": "ipl",
@@ -85,7 +93,8 @@ JSON format for each:
     })
 
     const parsed = JSON.parse(completion.choices[0].message.content ?? '{}')
-    const questions: GeneratedQuestion[] = parsed.questions ?? []
+    const matches: GeneratedMatch[] = parsed.matches ?? []
+    const questions: GeneratedQuestion[] = matches.flatMap(m => m.questions ?? [])
 
     if (!questions.length) throw new Error('No questions returned')
 
@@ -121,7 +130,7 @@ JSON format for each:
       await supabase.from('predictions').insert(opinionRows)
     }
 
-    return NextResponse.json({ success: true, generated: rows.length })
+    return NextResponse.json({ success: true, generated: rows.length, matches: matches.map(m => m.match_tag) })
   } catch (err) {
     console.error('generate-questions error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
