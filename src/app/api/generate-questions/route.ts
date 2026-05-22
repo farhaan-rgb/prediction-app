@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 
-// Service role key bypasses RLS for admin operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -22,6 +21,8 @@ interface GeneratedQuestion {
   deadline_offset_hours: number
   resolve_after_offset_hours: number
   context: string
+  valid?: boolean
+  [key: string]: unknown
 }
 
 interface GeneratedMatch {
@@ -64,11 +65,10 @@ export async function GET(req: NextRequest) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
     })
 
-    // Step 1: Find today's and tomorrow's IPL matches
+    // Step 1: Find matches
     const scheduleText = await webSearch(
       `IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. List each match with teams and start time IST.`
     )
-
     const parseResp = await openai.chat.completions.create({
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
@@ -77,14 +77,13 @@ export async function GET(req: NextRequest) {
         { role: 'user', content: `Extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${scheduleText}\n\nReturn JSON: { "matches": [{ "teams": "GT vs CSK", "team1": "GT", "team2": "CSK", "date": "today", "time_ist": "7:30 PM" }] }` },
       ],
     })
-
     const upcomingMatches: UpcomingMatch[] = JSON.parse(parseResp.choices[0].message.content ?? '{}').matches ?? []
 
     if (!upcomingMatches.length) {
-      return NextResponse.json({ message: 'No IPL matches found for today or tomorrow', generated: 0 })
+      return NextResponse.json({ message: 'No IPL matches found', generated: 0 })
     }
 
-    // Step 2: Fetch current squad for each unique team in parallel
+    // Step 2: Fetch current squads in parallel
     const teamCodes = [...new Set(upcomingMatches.flatMap(m => [m.team1, m.team2]))]
     const squads: Record<string, any> = {}
 
@@ -94,7 +93,7 @@ export async function GET(req: NextRequest) {
         model: 'gpt-4o',
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: 'Extract the current IPL 2026 squad. Only include players confirmed in the 2026 squad.' },
+          { role: 'system', content: 'Extract ONLY the current confirmed IPL 2026 squad. Do not include players from previous seasons who are no longer with this team.' },
           { role: 'user', content: `Extract ${team} IPL 2026 squad from:\n\n${squadText}\n\nReturn JSON: { "team": "${team}", "batsmen": [], "bowlers": [], "allrounders": [], "wicketkeeper": [] }` },
         ],
       })
@@ -104,7 +103,7 @@ export async function GET(req: NextRequest) {
     // Step 3: Clear existing open questions
     await supabase.from('questions').delete().eq('status', 'open')
 
-    // Step 4: Generate 5 questions per match using verified squads
+    // Step 4: Generate questions
     const matchList = upcomingMatches.map(m => {
       const formatSquad = (s: any) => s ? [
         s.batsmen?.length ? `Batsmen: ${s.batsmen.join(', ')}` : '',
@@ -125,9 +124,7 @@ export async function GET(req: NextRequest) {
           role: 'system',
           content: `You are a sports prediction question generator for IPL 2026.
 Generate exactly 5 prediction questions per match. You MUST only use players from the squads provided.
-
-Rules:
-- question_type: one of match_winner, top_scorer, top_bowler, team_total, player_milestone, toss — use a different type for each of the 5 questions
+- question_type: one of match_winner, top_scorer, top_bowler, team_total, player_milestone, toss — different type for each of the 5
 - options: 2–4 choices using real player names from the squad or team names
 - context: 2–3 sentences of recent form or head-to-head stats
 - deadline_offset_hours: hours from NOW to 30 min before match start
@@ -141,14 +138,51 @@ Rules:
       ],
     })
 
-    const parsed = JSON.parse(completion.choices[0].message.content ?? '{}')
-    const generatedMatches: GeneratedMatch[] = parsed.matches ?? []
-    const questions: GeneratedQuestion[] = generatedMatches.flatMap(m => m.questions ?? [])
+    const generatedMatches: GeneratedMatch[] = JSON.parse(completion.choices[0].message.content ?? '{}').matches ?? []
 
-    if (!questions.length) throw new Error('No questions generated')
+    // Step 5: Validate each question's options against fetched squads
+    const validatedQuestions: GeneratedQuestion[] = []
+
+    for (const match of generatedMatches) {
+      const src = upcomingMatches.find(m => {
+        const tag = match.match_tag?.toLowerCase() ?? ''
+        return tag.includes(m.team1.toLowerCase()) || tag.includes(m.team2.toLowerCase())
+      }) ?? upcomingMatches[0]
+
+      const validatorResp = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: `You are a cricket question validator for IPL 2026.
+For top_scorer, top_bowler, player_milestone: every option must be a player currently in one of the two squads. If an option is NOT in either squad, replace it with a valid player of the same role. If a question cannot be fixed with at least 2 valid options, mark it invalid.
+For match_winner and toss: options must be team names only.
+For team_total: options are run ranges — always valid.
+Return corrected questions. Mark unfixable ones with "valid": false.`,
+          },
+          {
+            role: 'user',
+            content: `Match: ${src.teams}
+${src.team1} squad: ${JSON.stringify(squads[src.team1])}
+${src.team2} squad: ${JSON.stringify(squads[src.team2])}
+
+Questions to validate:
+${JSON.stringify(match.questions, null, 2)}
+
+Return JSON: { "questions": [ { ...original_fields, "valid": true } ] }`,
+          },
+        ],
+      })
+
+      const validated: GeneratedQuestion[] = JSON.parse(validatorResp.choices[0].message.content ?? '{}').questions ?? []
+      validatedQuestions.push(...validated.filter(q => q.valid !== false).map(({ valid: _v, ...q }) => q as GeneratedQuestion))
+    }
+
+    if (!validatedQuestions.length) throw new Error('No valid questions after validation')
 
     const now = new Date()
-    const rows = questions.map(q => ({
+    const rows = validatedQuestions.map(q => ({
       title: q.title,
       category: q.category,
       question_type: q.question_type,
