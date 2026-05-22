@@ -6,7 +6,7 @@ import { Question, Prediction } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/context/UserContext'
 import { useCountdown } from '@/hooks/useCountdown'
-import { CheckCircle, XCircle, Zap, ChevronRight } from 'lucide-react'
+import { CheckCircle, XCircle, Zap, ChevronRight, Flame } from 'lucide-react'
 
 interface Props {
   question: Question
@@ -19,26 +19,32 @@ interface Props {
 const LEAGUE_CONFIG = {
   ipl: {
     label: 'IPL 2026',
-    gradient: 'from-orange-500 to-yellow-500',
+    icon: '🏏',
+    gradient: 'from-orange-500 to-amber-500',
     bg: 'bg-orange-500/10',
     border: 'border-orange-500/20',
     text: 'text-orange-400',
+    fill: 'bg-orange-500',
     dot: 'bg-orange-400',
   },
   nba: {
     label: 'NBA',
+    icon: '🏀',
     gradient: 'from-red-500 to-orange-600',
     bg: 'bg-red-500/10',
     border: 'border-red-500/20',
     text: 'text-red-400',
+    fill: 'bg-red-500',
     dot: 'bg-red-400',
   },
   current_events: {
     label: 'World',
+    icon: '🌍',
     gradient: 'from-blue-500 to-cyan-500',
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/20',
     text: 'text-blue-400',
+    fill: 'bg-blue-500',
     dot: 'bg-blue-400',
   },
 }
@@ -48,12 +54,7 @@ function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?:
 
   if (isExpired) {
     onExpired?.()
-    return (
-      <span className="text-xs font-semibold text-[#4a5568] flex items-center gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#4a5568]" />
-        Closed
-      </span>
-    )
+    return <span className="text-xs font-semibold text-[#4a5568]">Closed</span>
   }
 
   const colorClass =
@@ -61,24 +62,13 @@ function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?:
     urgency === 'soon' ? 'text-amber-400' :
     'text-emerald-400'
 
-  const dotClass =
-    urgency === 'critical' ? 'bg-red-400' :
-    urgency === 'soon' ? 'bg-amber-400' :
-    'bg-emerald-400'
-
   const pad = (n: number) => String(n).padStart(2, '0')
   const days = Math.floor(hours / 24)
   const h = hours % 24
-
-  const display = days >= 1
-    ? `${days}d ${h}h`
-    : `${pad(h)}:${pad(minutes)}:${pad(seconds)}`
+  const display = days >= 1 ? `${days}d ${h}h` : `${pad(h)}:${pad(minutes)}:${pad(seconds)}`
 
   return (
-    <span className={`text-xs font-bold font-mono flex items-center gap-1.5 ${colorClass}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotClass} ${urgency === 'critical' ? 'animate-pulse' : ''}`} />
-      {display}
-    </span>
+    <span className={`text-xs font-bold font-mono ${colorClass}`}>{display}</span>
   )
 }
 
@@ -93,6 +83,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
   const canPredict = user && !prediction && !isExpired && !localExpired && question.status === 'open'
   const wonPoints = isResolved && prediction && prediction.chosen_option === question.correct_option
   const totalVotes = Object.values(distribution ?? {}).reduce((a, b) => a + b, 0)
+  const isHot = totalVotes >= 6
 
   const handlePredict = async (optionIndex: number) => {
     if (!canPredict) return
@@ -111,34 +102,33 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
     const isCorrect = question.correct_option === index
 
     if (isResolved) {
-      if (isCorrect && isChosen)
-        return 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-semibold'
-      if (isCorrect)
-        return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-      if (isChosen)
-        return 'bg-red-500/10 border-red-500/30 text-red-400 line-through'
-      return 'bg-[#080b14] border-[#1e2438] text-[#4a5568]'
+      if (isCorrect && isChosen) return 'border-emerald-500/50 text-emerald-300 font-semibold'
+      if (isCorrect) return 'border-emerald-500/30 text-emerald-400'
+      if (isChosen) return 'border-red-500/30 text-red-400 line-through'
+      return 'border-[#1e2438] text-[#4a5568]'
     }
-
-    if (isChosen)
-      return 'bg-indigo-500/15 border-indigo-500/50 text-indigo-300 font-semibold'
-    if (!canPredict)
-      return 'bg-[#080b14] border-[#1e2438] text-[#4a5568] cursor-default'
-    return 'bg-[#080b14] border-[#1e2438] text-[#8892aa] hover:border-indigo-500/40 hover:bg-indigo-500/5 hover:text-white active:scale-[0.98] cursor-pointer'
+    if (isChosen) return 'border-indigo-500/50 text-indigo-300 font-semibold'
+    if (!canPredict) return 'border-[#1e2438] text-[#4a5568] cursor-default'
+    return 'border-[#1e2438] text-[#8892aa] hover:border-indigo-500/40 hover:text-white active:scale-[0.98] cursor-pointer'
   }
 
   return (
-    <div className="bg-[#0f1320] border border-[#1e2438] rounded-2xl overflow-hidden">
-      {/* League accent bar */}
-      <div className={`h-1 w-full bg-gradient-to-r ${league.gradient}`} />
+    <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-2xl overflow-hidden">
+      {/* Top accent bar */}
+      <div className={`h-0.5 w-full bg-gradient-to-r ${league.gradient}`} />
 
       <div className="p-4">
         {/* Header row */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${league.bg} ${league.border} ${league.text}`}>
-              {league.label}
+              {league.icon} {league.label}
             </span>
+            {isHot && !isResolved && (
+              <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400">
+                <Flame className="w-3 h-3" /> HOT
+              </span>
+            )}
             {isResolved && (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
                 Resolved
@@ -152,21 +142,27 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
           </div>
           <CountdownBadge
             deadline={question.deadline}
-            onExpired={() => {
-              setLocalExpired(true)
-              onExpired?.(question.id)
-            }}
+            onExpired={() => { setLocalExpired(true); onExpired?.(question.id) }}
           />
         </div>
 
-        {/* Question */}
-        <Link href={`/questions/${question.id}`} className="group flex items-start justify-between gap-2 mb-4">
-          <h3 className="text-base font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">{question.title}</h3>
+        {/* Title */}
+        <Link href={`/questions/${question.id}`} className="group flex items-start justify-between gap-2 mb-1">
+          <h3 className="text-[15px] font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">
+            {question.title}
+          </h3>
           <ChevronRight className="w-4 h-4 text-[#2a3050] group-hover:text-indigo-400 flex-shrink-0 mt-0.5 transition-colors" />
         </Link>
 
+        {/* Context snippet */}
+        {question.context && (
+          <p className="text-xs text-[#4a5568] leading-relaxed mb-3 line-clamp-2">
+            {question.context}
+          </p>
+        )}
+
         {/* Options */}
-        <div className="space-y-2">
+        <div className="space-y-2 mt-3">
           {question.options.map((option, index) => {
             const count = distribution?.[index] ?? 0
             const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
@@ -176,28 +172,28 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
             const isLeading = totalVotes > 0 && count === maxCount && count > 0
 
             const fillColor = isResolved
-              ? isCorrect ? 'bg-emerald-500' : isChosen ? 'bg-red-400' : 'bg-slate-500'
+              ? isCorrect ? 'bg-emerald-500' : isChosen ? 'bg-red-400' : 'bg-slate-600'
               : isChosen ? 'bg-indigo-500'
-              : isLeading ? league.dot
-              : 'bg-slate-600'
+              : isLeading ? league.fill
+              : 'bg-slate-700'
 
             return (
               <button
                 key={index}
                 onClick={() => handlePredict(index)}
                 disabled={!canPredict || submitting}
-                className={`relative overflow-hidden w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 ${getOptionStyle(index)}`}
+                className={`relative overflow-hidden w-full text-left px-3.5 py-2.5 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 bg-[#080b14] ${getOptionStyle(index)}`}
               >
                 {totalVotes > 0 && (
                   <div
-                    className={`absolute inset-y-0 left-0 transition-all duration-700 opacity-20 ${fillColor}`}
+                    className={`absolute inset-y-0 left-0 transition-all duration-700 opacity-[0.15] ${fillColor}`}
                     style={{ width: `${pct}%` }}
                   />
                 )}
                 <span className="relative z-10 flex-1 leading-snug font-medium">{option}</span>
                 <span className="relative z-10 flex items-center gap-2 flex-shrink-0">
                   {totalVotes > 0 && (
-                    <span className={`text-sm font-bold tabular-nums ${isLeading || isChosen ? 'opacity-100' : 'opacity-50'}`}>
+                    <span className={`text-sm font-bold tabular-nums ${isLeading || isChosen ? 'opacity-100' : 'opacity-40'}`}>
                       {pct}%
                     </span>
                   )}
@@ -211,17 +207,18 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3">
-          {totalVotes > 0 && (
-            <p className="text-xs text-[#4a5568]">{totalVotes} {totalVotes === 1 ? 'pick' : 'picks'} so far</p>
-          )}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1a1f35]">
+          <p className="text-xs text-[#4a5568]">
+            {totalVotes > 0 ? `${totalVotes} ${totalVotes === 1 ? 'pick' : 'picks'} so far` : 'No picks yet'}
+          </p>
           {canPredict && (
-            <p className={`text-xs text-[#4a5568] ${totalVotes > 0 ? 'ml-auto' : 'w-full text-center'}`}>
-              Tap an option to lock in your prediction
-            </p>
+            <p className="text-xs font-semibold text-indigo-400">Tap to forecast →</p>
           )}
           {!user && !isExpired && (
-            <p className="text-xs text-indigo-400 font-medium w-full text-center">Sign in to predict</p>
+            <p className="text-xs font-medium text-indigo-400">Sign in to predict →</p>
+          )}
+          {prediction && !isResolved && (
+            <p className="text-xs text-[#4a5568]">Prediction locked in</p>
           )}
         </div>
       </div>

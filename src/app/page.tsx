@@ -7,9 +7,15 @@ import { useUser } from '@/context/UserContext'
 import QuestionCard from '@/components/QuestionCard'
 import UsernameModal from '@/components/UsernameModal'
 import { isPast } from 'date-fns'
-import { Flame } from 'lucide-react'
+import { Flame, RefreshCw } from 'lucide-react'
 
 type LeagueFilter = 'all' | 'ipl' | 'nba'
+
+const FILTER_TABS: { key: LeagueFilter; label: string; icon: string }[] = [
+  { key: 'all', label: 'All', icon: '🌐' },
+  { key: 'ipl', label: 'IPL', icon: '🏏' },
+  { key: 'nba', label: 'NBA', icon: '🏀' },
+]
 
 export default function HomePage() {
   const { user, loading: userLoading } = useUser()
@@ -19,16 +25,14 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<LeagueFilter>('all')
 
-  useEffect(() => {
-    fetchQuestions()
-  }, [])
-
+  useEffect(() => { fetchQuestions() }, [])
   useEffect(() => {
     if (user) fetchUserPredictions()
     else setPredictions({})
   }, [user])
 
   const fetchQuestions = async () => {
+    setLoading(true)
     const { data } = await supabase
       .from('questions')
       .select('*')
@@ -59,10 +63,7 @@ export default function HomePage() {
 
   const fetchUserPredictions = async () => {
     if (!user) return
-    const { data } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('user_id', user.id)
+    const { data } = await supabase.from('predictions').select('*').eq('user_id', user.id)
     if (data) {
       const map: Record<string, Prediction> = {}
       data.forEach(p => { map[p.question_id] = p })
@@ -94,64 +95,76 @@ export default function HomePage() {
       {!userLoading && !user && <UsernameModal />}
 
       <main className="max-w-2xl mx-auto px-4 pt-4 pb-4">
+
         {/* User hero strip */}
         {user && (
-          <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/20 rounded-2xl p-4 mb-5 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-indigo-600/15 to-purple-600/15 border border-indigo-500/20 rounded-2xl p-4 mb-4 flex items-center justify-between">
             <div>
-              <p className="text-white font-bold text-base">@{user.username}</p>
+              <p className="text-white font-bold">@{user.username}</p>
               <p className="text-[#8892aa] text-xs mt-0.5">
-                {pendingCount > 0 ? `${pendingCount} prediction${pendingCount > 1 ? 's' : ''} left to make` : 'All caught up!'}
+                {pendingCount > 0
+                  ? `${pendingCount} prediction${pendingCount > 1 ? 's' : ''} awaiting your call`
+                  : '✓ All caught up!'}
               </p>
             </div>
             <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-xl">
               <span className="text-lg">⚡</span>
               <div>
                 <p className="text-amber-400 font-bold text-lg leading-none">{user.total_points}</p>
-                <p className="text-amber-600 text-[10px]">points</p>
+                <p className="text-amber-600 text-[10px]">pts</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Filter tabs */}
-        <div className="flex items-center gap-2 mb-4">
-          {(['all', 'ipl', 'nba'] as LeagueFilter[]).map(f => (
+        <div className="flex items-center gap-2 mb-4 bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-1">
+          {FILTER_TABS.map(({ key, label, icon }) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`flex-1 text-sm font-bold py-2.5 rounded-xl border transition-all ${
-                filter === f
-                  ? f === 'ipl'
-                    ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
-                    : f === 'nba'
-                    ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                    : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
-                  : 'bg-[#0f1320] border-[#1e2438] text-[#4a5568]'
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold py-2 rounded-lg transition-all ${
+                filter === key
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
+                  : 'text-[#4a5568] hover:text-[#8892aa]'
               }`}
             >
-              {f === 'all' ? 'All' : f.toUpperCase()}
+              <span>{icon}</span>
+              <span>{label}</span>
             </button>
           ))}
         </div>
 
-        {/* Section label */}
-        <div className="flex items-center gap-2 mb-3">
-          <Flame className="w-4 h-4 text-orange-400" />
-          <span className="text-xs font-bold text-[#8892aa] uppercase tracking-wider">This Week&apos;s Questions</span>
-          <span className="ml-auto text-xs text-[#4a5568]">{visibleQuestions.length} open</span>
+        {/* Deck header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-orange-400" />
+            <span className="text-xs font-bold text-[#8892aa] uppercase tracking-wider">
+              Prediction Deck
+            </span>
+            {!loading && (
+              <span className="text-xs font-bold text-white bg-[#1e2438] px-2 py-0.5 rounded-full">
+                {visibleQuestions.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={fetchQuestions}
+            className="p-1.5 rounded-lg text-[#4a5568] hover:text-[#8892aa] hover:bg-[#1e2438] transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Questions */}
         {loading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-52 rounded-2xl skeleton" />
-            ))}
+            {[1, 2, 3].map(i => <div key={i} className="h-56 rounded-2xl skeleton" />)}
           </div>
         ) : visibleQuestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#0f1320] border border-[#1e2438] flex items-center justify-center mb-4">
-              <Flame className="w-7 h-7 text-[#2a3050]" />
+            <div className="w-16 h-16 rounded-2xl bg-[#0c0f1d] border border-[#1e2438] flex items-center justify-center mb-4 text-2xl">
+              🏏
             </div>
             <p className="text-[#8892aa] font-medium">No open questions right now</p>
             <p className="text-[#4a5568] text-sm mt-1">Check back soon for new predictions</p>
