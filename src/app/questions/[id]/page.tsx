@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Question, Prediction } from '@/lib/types'
 import { useUser } from '@/context/UserContext'
 import { useCountdown } from '@/hooks/useCountdown'
-import { ArrowLeft, Users, CheckCircle, XCircle, Zap, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { ArrowLeft, Users, CheckCircle, XCircle, Zap, Trophy } from 'lucide-react'
 
 const TYPE_CONFIG = {
   match_winner:     { label: 'Match Prediction', icon: '🏆' },
@@ -18,25 +18,16 @@ const TYPE_CONFIG = {
 }
 
 const LEAGUE_CONFIG = {
-  ipl: {
-    label: 'IPL 2026', gradient: 'from-orange-500 to-amber-500',
-    bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400',
-    bar: 'bg-orange-400', hex: '#f97316',
-  },
-  nba: {
-    label: 'NBA', gradient: 'from-red-500 to-orange-600',
-    bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-400',
-    bar: 'bg-red-400', hex: '#ef4444',
-  },
-  current_events: {
-    label: 'World', gradient: 'from-blue-500 to-cyan-500',
-    bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400',
-    bar: 'bg-blue-400', hex: '#3b82f6',
-  },
+  ipl: { label: 'IPL 2026', gradient: 'from-orange-500 to-amber-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400' },
+  nba: { label: 'NBA', gradient: 'from-red-500 to-orange-600', bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-400' },
+  current_events: { label: 'World', gradient: 'from-blue-500 to-cyan-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400' },
 }
 
+// One distinct color per option — consistent across chart + table
+const OPTION_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e']
+
 const INTERVALS = 12
-const INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
+const INTERVAL_MS = 30 * 60 * 1000
 
 function buildHistory(
   allPreds: { chosen_option: number; created_at: string }[],
@@ -54,56 +45,119 @@ function buildHistory(
   })
 }
 
-// history[timePoint][optionIndex] → returns [optionIndex] timeseries
-function optionHistory(history: number[][], optionIndex: number): number[] {
-  return history.map(h => h[optionIndex])
+interface ChartProps {
+  history: number[][]
+  options: string[]
+  totalVotes: number
 }
 
-function Sparkline({ data, hex, hasVotes }: { data: number[]; hex: string; hasVotes: boolean }) {
-  if (!hasVotes) return null
+function MultiLineChart({ history, options, totalVotes }: ChartProps) {
+  const W = 420
+  const H = 180
+  const PAD = { top: 12, right: 52, bottom: 32, left: 12 }
+  const cW = W - PAD.left - PAD.right
+  const cH = H - PAD.top - PAD.bottom
 
-  const W = 100
-  const H = 36
-  const allZero = data.every(d => d === 0)
+  if (totalVotes === 0) {
+    return (
+      <div className="flex items-center justify-center h-32 text-[#2a3050] text-sm">
+        Waiting for picks…
+      </div>
+    )
+  }
 
-  // Normalise to 0-100 scale (% values)
-  const pts = data.map((v, i) => ({
-    x: (i / (data.length - 1)) * W,
-    y: allZero ? H : H - (v / 100) * H,
+  const allVals = history.flat().filter(v => v > 0)
+  const maxVal = allVals.length > 0 ? Math.max(...allVals) : 10
+  const yMax = Math.min(100, Math.ceil((maxVal + 12) / 10) * 10)
+
+  const sx = (i: number) => PAD.left + (i / (history.length - 1)) * cW
+  const sy = (v: number) => PAD.top + cH - (v / yMax) * cH
+
+  // Y-axis grid: pick a round step
+  const gridStep = yMax <= 30 ? 10 : yMax <= 60 ? 20 : 25
+  const gridLines = Array.from(
+    { length: Math.floor(yMax / gridStep) + 1 },
+    (_, i) => i * gridStep
+  ).filter(v => v <= yMax)
+
+  // X-axis: 5 evenly spaced time labels
+  const xLabelIdx = [0, 3, 6, 9, 12]
+  const now = Date.now()
+  const xLabels = xLabelIdx.map(i => ({
+    i,
+    label: new Date(now - (INTERVALS - i) * INTERVAL_MS).toLocaleTimeString('en-US', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata',
+    }),
   }))
 
-  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  const fillPath = `${linePath} L${W},${H} L0,${H} Z`
-
   return (
-    <div className="relative w-full">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        width="100%"
-        height={H}
-        preserveAspectRatio="none"
-        className="overflow-visible"
-      >
-        <path d={fillPath} fill={hex} opacity="0.12" />
-        <path d={linePath} fill="none" stroke={hex} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        {/* dot at current (rightmost) point */}
-        <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="2.5" fill={hex} />
-      </svg>
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="overflow-visible">
+      {/* Horizontal grid lines */}
+      {gridLines.map(v => (
+        <g key={v}>
+          <line
+            x1={PAD.left} y1={sy(v)}
+            x2={W - PAD.right} y2={sy(v)}
+            stroke="#1e2438" strokeWidth="1" strokeDasharray="3 3"
+          />
+          <text x={W - PAD.right + 5} y={sy(v) + 4} fontSize="9" fill="#4a5568">
+            {v}%
+          </text>
+        </g>
+      ))}
+
+      {/* Lines — rendered back-to-front so leading line is on top */}
+      {[...options].reverse().map((_, ri) => {
+        const oi = options.length - 1 - ri
+        const color = OPTION_COLORS[oi] ?? '#475569'
+        const pts = history.map((h, ti) => ({ x: sx(ti), y: sy(h[oi]) }))
+        const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+        const currentY = pts[pts.length - 1].y
+        const currentVal = history[history.length - 1][oi]
+
+        return (
+          <g key={oi}>
+            <path
+              d={linePath}
+              fill="none"
+              stroke={color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.9"
+            />
+            {/* Dot + value label at the current (rightmost) point */}
+            <circle cx={sx(INTERVALS)} cy={currentY} r="3.5" fill={color} />
+            <text
+              x={W - PAD.right + 5}
+              y={currentY + 4}
+              fontSize="9"
+              fill={color}
+              fontWeight="bold"
+            >
+              {currentVal}%
+            </text>
+          </g>
+        )
+      })}
+
+      {/* X-axis time labels */}
+      {xLabels.map(({ i, label }) => (
+        <text key={i} x={sx(i)} y={H - 4} fontSize="9" fill="#4a5568" textAnchor="middle">
+          {label}
+        </text>
+      ))}
+    </svg>
   )
 }
 
 function LiveCountdown({ deadline }: { deadline: string }) {
   const { hours, minutes, seconds, isExpired, urgency } = useCountdown(deadline)
   const pad = (n: number) => String(n).padStart(2, '0')
-  const days = Math.floor(hours / 24)
-  const h = hours % 24
-
+  const days = Math.floor(hours / 24); const h = hours % 24
   if (isExpired) return <span className="text-[#4a5568] font-mono font-bold text-2xl">Closed</span>
-
-  const colorClass = urgency === 'critical' ? 'text-red-400' : urgency === 'soon' ? 'text-amber-400' : 'text-emerald-400'
-  const display = days >= 1 ? `${days}d ${h}h remaining` : `${pad(h)}:${pad(minutes)}:${pad(seconds)}`
-  return <span className={`font-mono font-bold text-2xl ${colorClass}`}>{display}</span>
+  const c = urgency === 'critical' ? 'text-red-400' : urgency === 'soon' ? 'text-amber-400' : 'text-emerald-400'
+  return <span className={`font-mono font-bold text-2xl ${c}`}>{days >= 1 ? `${days}d ${h}h` : `${pad(h)}:${pad(minutes)}:${pad(seconds)}`}</span>
 }
 
 export default function QuestionDetailPage() {
@@ -149,38 +203,32 @@ export default function QuestionDetailPage() {
     setSubmitting(false)
   }
 
-  if (loading) {
-    return (
-      <main className="max-w-2xl mx-auto px-4 pt-4">
-        <div className="h-8 w-24 rounded-lg skeleton mb-6" />
-        <div className="h-64 rounded-2xl skeleton" />
-      </main>
-    )
-  }
+  if (loading) return (
+    <main className="max-w-2xl mx-auto px-4 pt-4">
+      <div className="h-8 w-24 rounded-lg skeleton mb-6" />
+      <div className="h-96 rounded-2xl skeleton" />
+    </main>
+  )
 
-  if (!question) {
-    return (
-      <main className="max-w-2xl mx-auto px-4 pt-16 text-center">
-        <p className="text-[#8892aa]">Question not found.</p>
-        <button onClick={() => router.push('/')} className="mt-4 text-indigo-400 text-sm">← Back</button>
-      </main>
-    )
-  }
+  if (!question) return (
+    <main className="max-w-2xl mx-auto px-4 pt-16 text-center">
+      <p className="text-[#8892aa]">Question not found.</p>
+      <button onClick={() => router.push('/')} className="mt-4 text-indigo-400 text-sm">← Back</button>
+    </main>
+  )
 
   const league = LEAGUE_CONFIG[question.category as keyof typeof LEAGUE_CONFIG] ?? LEAGUE_CONFIG.current_events
   const typeConfig = question.question_type ? TYPE_CONFIG[question.question_type] : null
   const isResolved = question.status === 'resolved'
   const totalVotes = allPreds.length
-  const maxCount = totalVotes > 0 ? Math.max(...question.options.map((_, i) => allPreds.filter(p => p.chosen_option === i).length)) : 0
   const canPredict = !!user && !prediction && question.status === 'open'
   const history = buildHistory(allPreds, question.options.length)
+  const currentSnapshot = history[history.length - 1]
+  const prevSnapshot = history[history.length - 2]
 
   return (
     <main className="max-w-2xl mx-auto px-4 pt-4 pb-8">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-[#4a5568] hover:text-white transition-colors text-sm mb-5"
-      >
+      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[#4a5568] hover:text-white transition-colors text-sm mb-5">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
@@ -190,9 +238,7 @@ export default function QuestionDetailPage() {
         <div className="p-5">
           {/* Header badges */}
           <div className="flex items-center gap-2 flex-wrap mb-4">
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${league.bg} ${league.border} ${league.text}`}>
-              {league.label}
-            </span>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${league.bg} ${league.border} ${league.text}`}>{league.label}</span>
             {typeConfig && (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1a1f35] border border-[#2a3050] text-[#8892aa]">
                 {typeConfig.icon} {typeConfig.label}
@@ -207,7 +253,7 @@ export default function QuestionDetailPage() {
           {/* Title */}
           <h1 className="text-xl font-bold text-white leading-snug mb-5">{question.title}</h1>
 
-          {/* Countdown / stats */}
+          {/* Countdown / participants */}
           {!isResolved && (
             <div className="bg-[#080b14] rounded-xl p-4 mb-6 flex items-center justify-between">
               <div>
@@ -224,97 +270,87 @@ export default function QuestionDetailPage() {
             </div>
           )}
 
-          {/* Public Opinion with sparklines */}
+          {/* ── Public Opinion ── */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider">
-                Public Opinion {totalVotes > 0 && `· ${totalVotes} picks`}
-              </p>
-              {totalVotes > 0 && (
-                <p className="text-[10px] text-[#2a3050]">Last 6 hours</p>
-              )}
+              <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider">Public Opinion</p>
+              {totalVotes > 0 && <p className="text-[10px] text-[#2a3050]">Last 6 hours · IST</p>}
             </div>
 
-            <div className="space-y-3">
-              {question.options.map((option, index) => {
-                const count = allPreds.filter(p => p.chosen_option === index).length
+            {/* Legend */}
+            {totalVotes > 0 && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
+                {question.options.map((option, oi) => {
+                  const pct = currentSnapshot[oi] ?? 0
+                  const color = OPTION_COLORS[oi] ?? '#475569'
+                  return (
+                    <div key={oi} className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                      <span className="text-xs text-[#8892aa] truncate max-w-[120px]">{option}</span>
+                      <span className="text-xs font-bold text-white">{pct}%</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Shared multi-line chart */}
+            <div className="bg-[#080b14] rounded-xl px-3 pt-3 pb-1 mb-4">
+              <MultiLineChart history={history} options={question.options} totalVotes={totalVotes} />
+            </div>
+
+            {/* Options table — Kalshi style */}
+            <div className="bg-[#080b14] rounded-xl overflow-hidden">
+              {question.options.map((option, oi) => {
+                const count = allPreds.filter(p => p.chosen_option === oi).length
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
-                const isChosen = prediction?.chosen_option === index
-                const isCorrect = question.correct_option === index
-                const isLeading = totalVotes > 0 && count === maxCount && count > 0
-
-                const sparkData = optionHistory(history, index)
-                // Delta: current vs 30 minutes ago (second-to-last interval)
-                const prevPct = sparkData[sparkData.length - 2] ?? 0
-                const delta = totalVotes >= 5 ? pct - prevPct : null
-
-                const hex = isResolved
-                  ? isCorrect ? '#10b981' : '#475569'
-                  : isChosen ? '#6366f1'
-                  : isLeading ? league.hex
-                  : '#475569'
-
-                const barColor = isResolved
-                  ? isCorrect ? 'bg-emerald-500' : 'bg-[#2a3050]'
-                  : isChosen ? 'bg-indigo-500'
-                  : isLeading ? league.bar
-                  : 'bg-[#2a3050]'
-
-                const nameColor = isResolved && isCorrect ? 'text-emerald-300'
-                  : isChosen ? 'text-indigo-300'
-                  : isLeading ? 'text-white'
-                  : 'text-[#8892aa]'
+                const delta = totalVotes >= 5 ? pct - (prevSnapshot[oi] ?? 0) : null
+                const color = OPTION_COLORS[oi] ?? '#475569'
+                const isChosen = prediction?.chosen_option === oi
+                const isCorrect = isResolved && question.correct_option === oi
+                const isWrong = isResolved && isChosen && !isCorrect
 
                 return (
-                  <div key={index} className="bg-[#080b14] border border-[#1a1f35] rounded-xl p-3.5">
-                    {/* Top row: name + % + delta */}
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-sm font-semibold ${nameColor}`}>{option}</span>
-                        {isChosen && <Zap className="w-3.5 h-3.5 text-indigo-400" />}
-                        {isResolved && isCorrect && <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
-                        {isResolved && isChosen && !isCorrect && <XCircle className="w-3.5 h-3.5 text-red-400" />}
-                        {isLeading && !isResolved && (
-                          <span className="text-[9px] font-bold text-[#4a5568] uppercase tracking-wider">Leading</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className={`text-xl font-black tabular-nums ${isLeading || isChosen ? 'text-white' : 'text-[#4a5568]'}`}>
-                          {totalVotes > 0 ? `${pct}%` : '—'}
+                  <div
+                    key={oi}
+                    className={`flex items-center gap-3 px-4 py-3.5 border-b border-[#1a1f35] last:border-0 ${
+                      isCorrect ? 'bg-emerald-500/5' : isChosen && !isResolved ? 'bg-indigo-500/5' : ''
+                    }`}
+                  >
+                    {/* Color dot */}
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+
+                    {/* Option name */}
+                    <span className={`flex-1 text-sm font-medium truncate ${
+                      isCorrect ? 'text-emerald-300' : isChosen ? 'text-indigo-300' : 'text-white'
+                    }`}>
+                      {option}
+                    </span>
+
+                    {/* % + delta */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-base font-black tabular-nums text-white">
+                        {totalVotes > 0 ? `${pct}%` : '—'}
+                      </span>
+                      {delta !== null && delta !== 0 && (
+                        <span className={`text-xs font-bold w-8 text-right ${delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {delta > 0 ? '▲' : '▼'}{Math.abs(delta)}
                         </span>
-                        {delta !== null && (
-                          <span className={`flex items-center gap-0.5 text-xs font-bold ${
-                            delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-red-400' : 'text-[#4a5568]'
-                          }`}>
-                            {delta > 0 ? <TrendingUp className="w-3 h-3" /> : delta < 0 ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                            {delta !== 0 && `${delta > 0 ? '+' : ''}${delta}%`}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {(delta === null || delta === 0) && (
+                        <span className="w-8" />
+                      )}
                     </div>
 
-                    {/* Sparkline */}
-                    <Sparkline data={sparkData} hex={hex} hasVotes={totalVotes > 0} />
-
-                    {/* Time axis labels */}
-                    {totalVotes > 0 && (
-                      <div className="flex justify-between mt-0.5 mb-2.5">
-                        <span className="text-[9px] text-[#2a3050]">6h ago</span>
-                        <span className="text-[9px] text-[#2a3050]">now</span>
-                      </div>
-                    )}
-
-                    {/* Progress bar */}
-                    <div className="h-2 rounded-full bg-[#1a1f35] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                        style={{ width: totalVotes > 0 ? `${pct}%` : '0%' }}
-                      />
-                    </div>
-
-                    <p className="text-[11px] text-[#4a5568] mt-1.5">
+                    {/* Picks */}
+                    <span className="text-xs text-[#4a5568] w-14 text-right flex-shrink-0">
                       {count} {count === 1 ? 'pick' : 'picks'}
-                    </p>
+                    </span>
+
+                    {/* Status icons */}
+                    {isCorrect && <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                    {isWrong && <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                    {isChosen && !isResolved && <Zap className="w-4 h-4 text-indigo-400 flex-shrink-0" />}
                   </div>
                 )
               })}
@@ -351,13 +387,14 @@ export default function QuestionDetailPage() {
             <div className="mb-5">
               <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider mb-3">Make your pick</p>
               <div className="space-y-2">
-                {question.options.map((option, index) => (
+                {question.options.map((option, oi) => (
                   <button
-                    key={index}
-                    onClick={() => handlePredict(index)}
+                    key={oi}
+                    onClick={() => handlePredict(oi)}
                     disabled={submitting}
-                    className="w-full text-left px-4 py-3.5 rounded-xl border border-[#1e2438] bg-[#080b14] text-[#8892aa] hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-white transition-all text-sm font-medium disabled:opacity-40"
+                    className="w-full text-left px-4 py-3.5 rounded-xl border border-[#1e2438] bg-[#080b14] text-[#8892aa] hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-white transition-all text-sm font-medium disabled:opacity-40 flex items-center gap-3"
                   >
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: OPTION_COLORS[oi] ?? '#475569' }} />
                     {option}
                   </button>
                 ))}
@@ -367,7 +404,7 @@ export default function QuestionDetailPage() {
             <p className="text-center text-sm text-indigo-400 font-medium py-3 mb-5">Sign in to make a prediction</p>
           ) : null}
 
-          {/* Context — moved to bottom */}
+          {/* Context — bottom */}
           {question.context && (
             <div className="bg-[#080b14] border border-[#1a1f35] rounded-xl p-4">
               <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-2">
