@@ -10,7 +10,8 @@ const env = Object.fromEntries(
     .map(l => { const [k, ...v] = l.split('='); return [k.trim(), v.join('=').trim()] })
 )
 
-const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+// Service role key bypasses RLS — used for admin writes/deletes
+const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY })
 
 const nowIST = new Date().toLocaleString('en-US', {
@@ -24,53 +25,85 @@ const tomorrowIST = new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateStrin
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
 })
 
-// Step 1: Web search for today's and tomorrow's IPL matches
+// Helper: web search via OpenAI Responses API
+async function webSearch(query) {
+  const resp = await openai.responses.create({
+    model: 'gpt-4o',
+    tools: [{ type: 'web_search_preview' }],
+    input: query,
+  })
+  return resp.output_text
+}
+
+// Step 1: Find today's and tomorrow's IPL matches
 console.log(`Searching for IPL matches on ${todayIST} and ${tomorrowIST}...`)
+const scheduleText = await webSearch(
+  `IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. List each match with the two teams and start time in IST.`
+)
+console.log('Schedule:\n' + scheduleText + '\n')
 
-const searchResp = await openai.responses.create({
-  model: 'gpt-4o',
-  tools: [{ type: 'web_search_preview' }],
-  input: `Search for the IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. List each match with the two teams and the start time in IST. If there is no match on a day, say so clearly.`,
-})
-
-console.log('Search result:', searchResp.output_text, '\n')
-
-// Step 2: Extract structured match list from search result
 const parseResp = await openai.chat.completions.create({
   model: 'gpt-4o',
   response_format: { type: 'json_object' },
   messages: [
-    {
-      role: 'system',
-      content: 'Extract IPL match information from the provided text. Return only matches you are confident about. Use short team abbreviations (e.g. "MI", "CSK", "RCB", "GT", "SRH", "KKR", "DC", "PBKS", "RR", "LSG").',
-    },
-    {
-      role: 'user',
-      content: `From this text, extract the IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}):\n\n${searchResp.output_text}\n\nReturn JSON:\n{ "matches": [{ "teams": "GT vs CSK", "date": "today", "time_ist": "7:30 PM" }] }`,
-    },
+    { role: 'system', content: 'Extract IPL match info. Use short team codes: MI, CSK, RCB, GT, SRH, KKR, DC, PBKS, RR, LSG.' },
+    { role: 'user', content: `Extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}) from this text:\n\n${scheduleText}\n\nReturn JSON: { "matches": [{ "teams": "GT vs CSK", "team1": "GT", "team2": "CSK", "date": "today", "time_ist": "7:30 PM" }] }` },
   ],
 })
+const upcomingMatches = JSON.parse(parseResp.choices[0].message.content ?? '{}').matches ?? []
 
-const matchData = JSON.parse(parseResp.choices[0].message.content ?? '{}')
-const matches = matchData.matches ?? []
-
-if (!matches.length) {
+if (!upcomingMatches.length) {
   console.log('No IPL matches found for today or tomorrow. Exiting.')
   process.exit(0)
 }
 
 console.log('Matches found:')
-matches.forEach(m => console.log(`  ${m.teams} — ${m.date} at ${m.time_ist} IST`))
+upcomingMatches.forEach(m => console.log(`  ${m.teams} — ${m.date} at ${m.time_ist} IST`))
 console.log()
 
-// Step 3: Delete existing open questions
-console.log('Deleting existing open questions...')
-const { error: deleteError } = await supabase.from('questions').delete().eq('status', 'open')
+// Step 2: Fetch current squad for each unique team
+const teamCodes = [...new Set(upcomingMatches.flatMap(m => [m.team1, m.team2]))]
+const squads = {}
+
+console.log('Fetching current squads...')
+await Promise.all(teamCodes.map(async (team) => {
+  const squadText = await webSearch(`${team} IPL 2026 squad current players list with roles`)
+  const resp = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: 'Extract the current IPL 2026 squad from the text. Include only players confirmed in the 2026 squad.' },
+      { role: 'user', content: `Extract the ${team} IPL 2026 squad from this text:\n\n${squadText}\n\nReturn JSON: { "team": "${team}", "batsmen": ["name1"], "bowlers": ["name1"], "allrounders": ["name1"], "wicketkeeper": ["name1"] }` },
+    ],
+  })
+  squads[team] = JSON.parse(resp.choices[0].message.content ?? '{}')
+  const total = Object.values(squads[team]).filter(Array.isArray).flat().length
+  console.log(`  ${team}: ${total} players fetched`)
+}))
+console.log()
+
+// Step 3: Delete all existing open questions
+console.log('Clearing existing open questions...')
+const { error: deleteError, count } = await supabase.from('questions').delete({ count: 'exact' }).eq('status', 'open')
 if (deleteError) throw deleteError
+console.log(`Deleted ${count} questions.\n`)
 
-// Step 4: Generate 5 questions per match
-const matchList = matches.map(m => `- ${m.teams} (${m.date} at ${m.time_ist} IST)`).join('\n')
+// Step 4: Generate 5 questions per match using verified squads
+const matchList = upcomingMatches.map(m => {
+  const s1 = squads[m.team1]
+  const s2 = squads[m.team2]
+  const formatSquad = (s) => s ? [
+    s.batsmen?.length ? `Batsmen: ${s.batsmen.join(', ')}` : '',
+    s.wicketkeeper?.length ? `Wicketkeeper: ${s.wicketkeeper.join(', ')}` : '',
+    s.allrounders?.length ? `All-rounders: ${s.allrounders.join(', ')}` : '',
+    s.bowlers?.length ? `Bowlers: ${s.bowlers.join(', ')}` : '',
+  ].filter(Boolean).join(' | ') : 'squad unknown'
+  return `Match: ${m.teams} (${m.date} at ${m.time_ist} IST)
+  ${m.team1} squad — ${formatSquad(s1)}
+  ${m.team2} squad — ${formatSquad(s2)}`
+}).join('\n\n')
 
+console.log('Generating questions...')
 const completion = await openai.chat.completions.create({
   model: 'gpt-4o',
   response_format: { type: 'json_object' },
@@ -78,24 +111,20 @@ const completion = await openai.chat.completions.create({
     {
       role: 'system',
       content: `You are a sports prediction question generator for IPL 2026.
-Generate exactly 5 prediction questions for each match listed. Use the EXACT team names provided.
+Generate exactly 5 prediction questions per match. You MUST only use players from the squads provided — do not invent or use players not listed.
 
 Rules:
-- Only ask about things unknown before the match starts
-- Each question must have 2-4 plausible, distinct options (use real player names where relevant)
-- question_type must be one of: match_winner, top_scorer, top_bowler, team_total, player_milestone, toss
-- Cover different types across the 5 questions per match (ideally one of each type)
-- context: 2-3 sentences of recent form, head-to-head, or player stats that help users decide
-- deadline_offset_hours: hours from NOW until 30 minutes before match start
-  IPL evening matches start 7:30 PM IST; afternoon 3:30 PM IST
-- resolve_after_offset_hours: hours from NOW until result is known (match start time + 4 hours)
+- question_type: one of match_winner, top_scorer, top_bowler, team_total, player_milestone, toss — use a different type for each of the 5 questions
+- options: 2–4 choices using real player names from the squad or team names
+- context: 2–3 sentences of recent form or head-to-head stats that help users decide
+- deadline_offset_hours: hours from NOW to 30 min before match start (IPL evening = 7:30 PM IST)
+- resolve_after_offset_hours: hours from NOW to match end (start + 4h)
 - Respond with JSON: { "matches": [{ "match_tag": "...", "questions": [...] }] }`,
     },
     {
       role: 'user',
       content: `Current time: ${nowIST} (IST)
 
-Generate 5 questions for each of these IPL 2026 matches:
 ${matchList}
 
 Each question JSON:

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 
+// Service role key bypasses RLS for admin operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
@@ -28,6 +29,23 @@ interface GeneratedMatch {
   questions: GeneratedQuestion[]
 }
 
+interface UpcomingMatch {
+  teams: string
+  team1: string
+  team2: string
+  date: string
+  time_ist: string
+}
+
+async function webSearch(query: string): Promise<string> {
+  const resp = await (openai as any).responses.create({
+    model: 'gpt-4o',
+    tools: [{ type: 'web_search_preview' }],
+    input: query,
+  })
+  return resp.output_text as string
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -46,41 +64,58 @@ export async function GET(req: NextRequest) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
     })
 
-    // Step 1: Web search for today's and tomorrow's IPL matches
-    const searchResp = await (openai as any).responses.create({
-      model: 'gpt-4o',
-      tools: [{ type: 'web_search_preview' }],
-      input: `Search for the IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. List each match with the two teams and start time in IST.`,
-    })
+    // Step 1: Find today's and tomorrow's IPL matches
+    const scheduleText = await webSearch(
+      `IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. List each match with teams and start time IST.`
+    )
 
-    // Step 2: Extract structured match list
     const parseResp = await openai.chat.completions.create({
       model: 'gpt-4o',
       response_format: { type: 'json_object' },
       messages: [
-        {
-          role: 'system',
-          content: 'Extract IPL match information from the provided text. Return only matches you are confident about. Use short team abbreviations (MI, CSK, RCB, GT, SRH, KKR, DC, PBKS, RR, LSG).',
-        },
-        {
-          role: 'user',
-          content: `From this text, extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}):\n\n${searchResp.output_text}\n\nReturn JSON:\n{ "matches": [{ "teams": "GT vs CSK", "date": "today", "time_ist": "7:30 PM" }] }`,
-        },
+        { role: 'system', content: 'Extract IPL match info. Use short team codes: MI, CSK, RCB, GT, SRH, KKR, DC, PBKS, RR, LSG.' },
+        { role: 'user', content: `Extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${scheduleText}\n\nReturn JSON: { "matches": [{ "teams": "GT vs CSK", "team1": "GT", "team2": "CSK", "date": "today", "time_ist": "7:30 PM" }] }` },
       ],
     })
 
-    const matchData = JSON.parse(parseResp.choices[0].message.content ?? '{}')
-    const upcomingMatches: { teams: string; date: string; time_ist: string }[] = matchData.matches ?? []
+    const upcomingMatches: UpcomingMatch[] = JSON.parse(parseResp.choices[0].message.content ?? '{}').matches ?? []
 
     if (!upcomingMatches.length) {
       return NextResponse.json({ message: 'No IPL matches found for today or tomorrow', generated: 0 })
     }
 
-    // Step 3: Delete existing open questions
+    // Step 2: Fetch current squad for each unique team in parallel
+    const teamCodes = [...new Set(upcomingMatches.flatMap(m => [m.team1, m.team2]))]
+    const squads: Record<string, any> = {}
+
+    await Promise.all(teamCodes.map(async (team) => {
+      const squadText = await webSearch(`${team} IPL 2026 squad current players list with roles`)
+      const resp = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'Extract the current IPL 2026 squad. Only include players confirmed in the 2026 squad.' },
+          { role: 'user', content: `Extract ${team} IPL 2026 squad from:\n\n${squadText}\n\nReturn JSON: { "team": "${team}", "batsmen": [], "bowlers": [], "allrounders": [], "wicketkeeper": [] }` },
+        ],
+      })
+      squads[team] = JSON.parse(resp.choices[0].message.content ?? '{}')
+    }))
+
+    // Step 3: Clear existing open questions
     await supabase.from('questions').delete().eq('status', 'open')
 
-    // Step 4: Generate 5 questions per match
-    const matchList = upcomingMatches.map(m => `- ${m.teams} (${m.date} at ${m.time_ist} IST)`).join('\n')
+    // Step 4: Generate 5 questions per match using verified squads
+    const matchList = upcomingMatches.map(m => {
+      const formatSquad = (s: any) => s ? [
+        s.batsmen?.length ? `Batsmen: ${s.batsmen.join(', ')}` : '',
+        s.wicketkeeper?.length ? `Wicketkeeper: ${s.wicketkeeper.join(', ')}` : '',
+        s.allrounders?.length ? `All-rounders: ${s.allrounders.join(', ')}` : '',
+        s.bowlers?.length ? `Bowlers: ${s.bowlers.join(', ')}` : '',
+      ].filter(Boolean).join(' | ') : 'squad unknown'
+      return `Match: ${m.teams} (${m.date} at ${m.time_ist} IST)
+  ${m.team1} squad — ${formatSquad(squads[m.team1])}
+  ${m.team2} squad — ${formatSquad(squads[m.team2])}`
+    }).join('\n\n')
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -89,36 +124,19 @@ export async function GET(req: NextRequest) {
         {
           role: 'system',
           content: `You are a sports prediction question generator for IPL 2026.
-Generate exactly 5 prediction questions for each match listed. Use the EXACT team names provided.
+Generate exactly 5 prediction questions per match. You MUST only use players from the squads provided.
 
 Rules:
-- Only ask about things unknown before the match starts
-- Each question must have 2-4 plausible, distinct options (use real player names where relevant)
-- question_type must be one of: match_winner, top_scorer, top_bowler, team_total, player_milestone, toss
-- Cover different types across the 5 questions per match (ideally one of each type)
-- context: 2-3 sentences of recent form, head-to-head, or player stats that help users decide
-- deadline_offset_hours: hours from NOW until 30 minutes before match start
-  IPL evening matches start 7:30 PM IST; afternoon 3:30 PM IST
-- resolve_after_offset_hours: hours from NOW until result is known (match start time + 4 hours)
+- question_type: one of match_winner, top_scorer, top_bowler, team_total, player_milestone, toss — use a different type for each of the 5 questions
+- options: 2–4 choices using real player names from the squad or team names
+- context: 2–3 sentences of recent form or head-to-head stats
+- deadline_offset_hours: hours from NOW to 30 min before match start
+- resolve_after_offset_hours: hours from NOW to match end (start + 4h)
 - Respond with JSON: { "matches": [{ "match_tag": "...", "questions": [...] }] }`,
         },
         {
           role: 'user',
-          content: `Current time: ${nowIST} (IST)
-
-Generate 5 questions for each of these IPL 2026 matches:
-${matchList}
-
-Each question JSON:
-{
-  "title": "...",
-  "category": "ipl",
-  "question_type": "match_winner",
-  "options": ["Team A", "Team B"],
-  "deadline_offset_hours": 9,
-  "resolve_after_offset_hours": 13,
-  "context": "..."
-}`,
+          content: `Current time: ${nowIST} (IST)\n\n${matchList}\n\nEach question JSON:\n{\n  "title": "...",\n  "category": "ipl",\n  "question_type": "match_winner",\n  "options": [...],\n  "deadline_offset_hours": 9,\n  "resolve_after_offset_hours": 13,\n  "context": "..."\n}`,
         },
       ],
     })
@@ -144,7 +162,6 @@ Each question JSON:
     const { error, data } = await supabase.from('questions').insert(rows).select('id')
     if (error) throw error
 
-    // Auto-seed bot opinions
     const { data: seedUsers } = await supabase.from('users').select('id').in('username', SEED_USERNAMES)
     if (seedUsers?.length && data) {
       const weightedRandom = (optCount: number) => {
