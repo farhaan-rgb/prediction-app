@@ -9,12 +9,15 @@ import UsernameModal from '@/components/UsernameModal'
 import { isPast } from 'date-fns'
 import { Flame, RefreshCw } from 'lucide-react'
 
-type LeagueFilter = 'all' | 'ipl' | 'nba' | 'current_events'
+type LeagueFilter = 'all' | 'ipl' | 'nba' | 'current_events' | 'stocks' | 'crypto' | 'movies'
 
 const FILTER_TABS: { key: LeagueFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: '🌐' },
   { key: 'ipl', label: 'IPL', icon: '🏏' },
   { key: 'nba', label: 'NBA', icon: '🏀' },
+  { key: 'stocks', label: 'Stocks', icon: '📈' },
+  { key: 'crypto', label: 'Crypto', icon: '₿' },
+  { key: 'movies', label: 'Movies', icon: '🎬' },
   { key: 'current_events', label: 'Current Affairs', icon: '📰' },
 ]
 

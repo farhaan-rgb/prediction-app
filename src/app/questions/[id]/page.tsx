@@ -18,12 +18,22 @@ const TYPE_CONFIG = {
   outcome:          { label: 'Outcome',            icon: '🎯' },
   policy:           { label: 'Policy',             icon: '⚖️' },
   market:           { label: 'Market',             icon: '📈' },
+  market_direction: { label: 'Market Direction',   icon: '📊' },
+  price_level:      { label: 'Price Level',        icon: '💹' },
+  sector_call:      { label: 'Sector Call',        icon: '🏭' },
+  price_direction:  { label: 'Price Direction',    icon: '₿' },
+  regulation:       { label: 'Regulation',         icon: '⚖️' },
+  box_office:       { label: 'Box Office',         icon: '🎬' },
+  hit_or_flop:      { label: 'Hit or Flop',        icon: '🎭' },
 }
 
 const LEAGUE_CONFIG = {
   ipl: { label: 'IPL 2026', gradient: 'from-orange-500 to-amber-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400' },
   nba: { label: 'NBA', gradient: 'from-red-500 to-orange-600', bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-400' },
   current_events: { label: 'Current Affairs', gradient: 'from-blue-500 to-cyan-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400' },
+  stocks:         { label: 'Stocks',          gradient: 'from-emerald-500 to-green-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
+  crypto:         { label: 'Crypto',          gradient: 'from-yellow-500 to-amber-400',  bg: 'bg-yellow-500/10',  border: 'border-yellow-500/20',  text: 'text-yellow-400' },
+  movies:         { label: 'Box Office',      gradient: 'from-pink-500 to-rose-500',     bg: 'bg-pink-500/10',    border: 'border-pink-500/20',    text: 'text-pink-400' },
 }
 
 // One distinct color per option — consistent across chart + table

@@ -47,6 +47,36 @@ const LEAGUE_CONFIG = {
     fill: 'bg-blue-500',
     dot: 'bg-blue-400',
   },
+  stocks: {
+    label: 'Stocks',
+    icon: '📈',
+    gradient: 'from-emerald-500 to-green-500',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    text: 'text-emerald-400',
+    fill: 'bg-emerald-500',
+    dot: 'bg-emerald-400',
+  },
+  crypto: {
+    label: 'Crypto',
+    icon: '₿',
+    gradient: 'from-yellow-500 to-amber-400',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/20',
+    text: 'text-yellow-400',
+    fill: 'bg-yellow-500',
+    dot: 'bg-yellow-400',
+  },
+  movies: {
+    label: 'Box Office',
+    icon: '🎬',
+    gradient: 'from-pink-500 to-rose-500',
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+    text: 'text-pink-400',
+    fill: 'bg-pink-500',
+    dot: 'bg-pink-400',
+  },
 }
 
 function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?: () => void }) {

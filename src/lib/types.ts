@@ -1,4 +1,4 @@
-export type Category = 'ipl' | 'nba' | 'current_events'
+export type Category = 'ipl' | 'nba' | 'current_events' | 'stocks' | 'crypto' | 'movies'
 export type QuestionStatus = 'open' | 'closed' | 'resolved'
 
 export interface User {
@@ -10,7 +10,7 @@ export interface User {
   created_at: string
 }
 
-export type QuestionType = 'match_winner' | 'top_scorer' | 'top_bowler' | 'team_total' | 'player_milestone' | 'toss' | 'outcome' | 'policy' | 'market'
+export type QuestionType = 'match_winner' | 'top_scorer' | 'top_bowler' | 'team_total' | 'player_milestone' | 'toss' | 'outcome' | 'policy' | 'market' | 'market_direction' | 'price_level' | 'sector_call' | 'price_direction' | 'regulation' | 'box_office' | 'hit_or_flop'
 
 export interface Question {
   id: string

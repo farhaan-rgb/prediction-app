@@ -46,15 +46,26 @@ export async function GET(req: NextRequest) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata',
     })
 
+    const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Kolkata' })
+    const isWeekday = !['Saturday', 'Sunday'].includes(dayName)
+    const isFriday = dayName === 'Friday'
+
     // Phase 1: Search fixtures & events in parallel
-    const [iplScheduleText, nbaScheduleText, caText] = await Promise.all([
+    const [iplScheduleText, nbaScheduleText, caText, cryptoText, stocksText, moviesText] = await Promise.all([
       webSearch(`IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. Teams and start times IST.`),
       webSearch(`NBA 2026 basketball games scheduled for ${todayIST} and ${tomorrowIST}. Teams and tip-off times.`),
-      webSearch(`India current affairs news ${todayIST} — upcoming events, political decisions, sports, economic announcements expected in the next 24 to 48 hours where the outcome will be publicly known.`),
+      webSearch(`India current affairs ${todayIST} — upcoming events, political decisions, JEE NEET UPSC board exam results, sports, economic announcements in the next 24-48 hours where the outcome will be publicly known.`),
+      webSearch(`Bitcoin Ethereum crypto price India ${todayIST}. BTC ETH price in INR, market trend, RBI SEBI crypto regulation news.`),
+      isWeekday
+        ? webSearch(`NIFTY50 SENSEX Indian stock market ${todayIST} — today's outlook, key levels, sectors to watch, major stocks moving.`)
+        : Promise.resolve(''),
+      isFriday
+        ? webSearch(`Bollywood Indian movies releasing in cinemas this Friday ${todayIST} — box office predictions, budget, cast, expected collection.`)
+        : Promise.resolve(''),
     ])
 
     // Phase 2: Parse in parallel
-    const [iplParsed, nbaParsed, caParsed] = await Promise.all([
+    const [iplParsed, nbaParsed, caParsed, cryptoParsed, stocksParsed, moviesParsed] = await Promise.all([
       jsonComplete(
         'Extract IPL match info. Use short codes: MI, CSK, RCB, GT, SRH, KKR, DC, PBKS, RR, LSG.',
         `Extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${iplScheduleText}\n\nReturn JSON: { "matches": [{ "teams": "GT vs CSK", "team1": "GT", "team2": "CSK", "date": "today", "time_ist": "7:30 PM" }] }`
@@ -64,14 +75,31 @@ export async function GET(req: NextRequest) {
         `Extract NBA games for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${nbaScheduleText}\n\nReturn JSON: { "games": [{ "teams": "Lakers vs Warriors", "team1": "Lakers", "team2": "Warriors", "date": "today", "time_ist": "6:30 AM" }] }`
       ),
       jsonComplete(
-        'Extract Indian current affairs events that have an outcome within 24-48 hours.',
-        `From this news, extract 3-5 Indian current affairs events with outcomes knowable in the next 24-48 hours:\n\n${caText}\n\nReturn JSON: { "events": [{ "topic": "brief topic", "context": "2-3 sentence description", "expected_outcome_hours": 24 }] }`
+        'Extract Indian current affairs and exam result events that have an outcome within 24-48 hours. Focus on verifiable, newsworthy events including public exam results.',
+        `From this news, extract 3-5 Indian current affairs or exam result events with outcomes knowable in the next 24-48 hours:\n\n${caText}\n\nReturn JSON: { "events": [{ "topic": "brief topic", "context": "2-3 sentence description", "expected_outcome_hours": 24 }] }`
       ),
+      jsonComplete(
+        'Extract crypto market info for India. Return JSON.',
+        `From this content, extract key data: current BTC and ETH prices, 24h trend, and any RBI/SEBI regulation news:\n\n${cryptoText}\n\nReturn JSON: { "btc_price_inr": "approx", "eth_price_inr": "approx", "trend_24h": "bullish|bearish|sideways", "regulation_news": "brief summary or none" }`
+      ),
+      isWeekday
+        ? jsonComplete(
+            'Extract Indian stock market outlook. Return JSON.',
+            `From this content, extract today's NIFTY/SENSEX outlook:\n\n${stocksText}\n\nReturn JSON: { "nifty_last_close": "approx level", "sensex_last_close": "approx level", "outlook": "bullish|bearish|sideways", "key_sectors": ["sector1"], "key_stocks": ["STOCK1"], "context": "2-3 sentence summary" }`
+          )
+        : Promise.resolve({ outlook: 'weekend', context: '' }),
+      isFriday
+        ? jsonComplete(
+            'Extract Bollywood movies releasing this Friday. Return JSON.',
+            `From this content, extract movies releasing this Friday:\n\n${moviesText}\n\nReturn JSON: { "movies": [{ "title": "Movie Name", "language": "Hindi/Tamil/etc", "cast": "lead actors", "budget_cr": 100, "expected_oc_cr": 15, "context": "2-3 sentence background" }] }`
+          )
+        : Promise.resolve({ movies: [] }),
     ])
 
     const iplMatches = iplParsed.matches ?? []
     const nbaGames = nbaParsed.games ?? []
     const caEvents = caParsed.events ?? []
+    const moviesList = moviesParsed.movies ?? []
 
     // Phase 3: Fetch IPL squads
     const squads: Record<string, any> = {}
@@ -141,6 +169,53 @@ Respond with JSON: { "questions": [...] }`,
     )
     allGenerated.push(...(nbaResp.questions ?? []))
 
+    // Stocks (weekday only)
+    if (isWeekday) {
+      const stocksResp = await jsonComplete(
+        `Indian stock market prediction question generator. Generate 3 questions about today's trading session. Return JSON.
+question_type: market_direction|price_level|sector_call
+options: 2-4 clear choices (e.g. "Above 24,500" / "Below 24,500")
+context: 2-3 sentences on yesterday's close, global cues, key levels
+deadline_offset_hours: hours from NOW until 9:00 AM IST (market open)
+resolve_after_offset_hours: hours from NOW until 3:45 PM IST (market close)
+Respond with JSON: { "questions": [...] }`,
+        `Current time: ${nowIST}\n\nMarket context:\nNIFTY last close: ${stocksParsed.nifty_last_close}\nOutlook: ${stocksParsed.outlook}\nKey sectors: ${(stocksParsed.key_sectors ?? []).join(', ')}\nKey stocks: ${(stocksParsed.key_stocks ?? []).join(', ')}\n${stocksParsed.context}\n\nEach: { "title":"...","category":"stocks","question_type":"market_direction","options":[...],"deadline_offset_hours":14,"resolve_after_offset_hours":21,"context":"..." }`
+      )
+      allGenerated.push(...(stocksResp.questions ?? []))
+    }
+
+    // Crypto
+    const cryptoResp = await jsonComplete(
+      `Crypto prediction question generator for Indian users. Generate 3 questions about BTC/ETH prices or Indian crypto regulations. Return JSON.
+question_type: price_direction|regulation|market_cap
+options: 2-4 choices (price ranges or Yes/No for regulation)
+context: 2-3 sentences of recent price action or regulatory backdrop
+deadline_offset_hours: 20
+resolve_after_offset_hours: 30
+Respond with JSON: { "questions": [...] }`,
+      `Current time: ${nowIST}\n\nCrypto context:\nBTC: ${cryptoParsed.btc_price_inr} INR\nETH: ${cryptoParsed.eth_price_inr} INR\n24h trend: ${cryptoParsed.trend_24h}\nRegulation: ${cryptoParsed.regulation_news || 'none'}\n\nEach: { "title":"...","category":"crypto","question_type":"price_direction","options":[...],"deadline_offset_hours":20,"resolve_after_offset_hours":30,"context":"..." }`
+    )
+    allGenerated.push(...(cryptoResp.questions ?? []))
+
+    // Movies (Friday only)
+    if (isFriday && moviesList.length) {
+      const movieSummary = moviesList.map((m: any) =>
+        `${m.title} (${m.language}): ${m.cast}. Budget: ₹${m.budget_cr}Cr. ${m.context}`
+      ).join('\n\n')
+
+      const moviesResp = await jsonComplete(
+        `Bollywood box office prediction question generator. Generate 3 questions about this Friday's releases. Return JSON.
+question_type: box_office|hit_or_flop|opening_day
+options: 3-4 choices with specific INR crore ranges
+context: 2-3 sentences on the film's expectations
+deadline_offset_hours: hours until Friday 9:00 AM IST (first shows)
+resolve_after_offset_hours: 72 (Monday morning after first weekend)
+Respond with JSON: { "questions": [...] }`,
+        `Current time: ${nowIST}\n\nReleasing this Friday:\n${movieSummary}\n\nEach: { "title":"...","category":"movies","question_type":"box_office","options":[...],"deadline_offset_hours":12,"resolve_after_offset_hours":72,"context":"..." }`
+      )
+      allGenerated.push(...(moviesResp.questions ?? []))
+    }
+
     // Current Affairs
     const caEventSummary = caEvents.length > 0
       ? caEvents.map((e: any) => `- ${e.topic}: ${e.context}`).join('\n')
@@ -148,7 +223,7 @@ Respond with JSON: { "questions": [...] }`,
 
     const caResp = await jsonComplete(
       `Indian current affairs prediction question generator. Generate exactly 5 questions about newsworthy events in India where outcomes are known in 24-48 hours.
-Topics: politics, economy, sports (non-cricket), entertainment, technology
+Topics: politics, economy, sports (non-cricket), entertainment, technology, public exam results
 question_type: outcome|policy|market
 options: 2-4 distinct plausible choices
 context: 2-3 sentences background
