@@ -38,8 +38,8 @@ const LEAGUE_CONFIG = {
     dot: 'bg-red-400',
   },
   current_events: {
-    label: 'World',
-    icon: '🌍',
+    label: 'Current Affairs',
+    icon: '📰',
     gradient: 'from-blue-500 to-cyan-500',
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/20',

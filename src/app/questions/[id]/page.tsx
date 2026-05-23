@@ -15,12 +15,15 @@ const TYPE_CONFIG = {
   team_total:       { label: 'Team Total',         icon: '📊' },
   player_milestone: { label: 'Player Milestone',   icon: '⭐' },
   toss:             { label: 'Toss',               icon: '🪙' },
+  outcome:          { label: 'Outcome',            icon: '🎯' },
+  policy:           { label: 'Policy',             icon: '⚖️' },
+  market:           { label: 'Market',             icon: '📈' },
 }
 
 const LEAGUE_CONFIG = {
   ipl: { label: 'IPL 2026', gradient: 'from-orange-500 to-amber-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400' },
   nba: { label: 'NBA', gradient: 'from-red-500 to-orange-600', bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-400' },
-  current_events: { label: 'World', gradient: 'from-blue-500 to-cyan-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400' },
+  current_events: { label: 'Current Affairs', gradient: 'from-blue-500 to-cyan-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400' },
 }
 
 // One distinct color per option — consistent across chart + table

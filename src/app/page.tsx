@@ -9,12 +9,13 @@ import UsernameModal from '@/components/UsernameModal'
 import { isPast } from 'date-fns'
 import { Flame, RefreshCw } from 'lucide-react'
 
-type LeagueFilter = 'all' | 'ipl' | 'nba'
+type LeagueFilter = 'all' | 'ipl' | 'nba' | 'current_events'
 
 const FILTER_TABS: { key: LeagueFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: '🌐' },
   { key: 'ipl', label: 'IPL', icon: '🏏' },
   { key: 'nba', label: 'NBA', icon: '🏀' },
+  { key: 'current_events', label: 'Current Affairs', icon: '📰' },
 ]
 
 export default function HomePage() {
@@ -117,16 +118,16 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Filter tabs */}
-        <div className="flex items-center gap-2 mb-4 bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-1">
+        {/* Filter tabs — horizontally scrollable */}
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide pb-0.5 -mx-4 px-4">
           {FILTER_TABS.map(({ key, label, icon }) => (
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold py-2 rounded-lg transition-all ${
+              className={`flex-shrink-0 flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full border transition-all whitespace-nowrap ${
                 filter === key
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
-                  : 'text-[#4a5568] hover:text-[#8892aa]'
+                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
+                  : 'bg-[#0c0f1d] border-[#1e2438] text-[#4a5568] hover:text-[#8892aa]'
               }`}
             >
               <span>{icon}</span>

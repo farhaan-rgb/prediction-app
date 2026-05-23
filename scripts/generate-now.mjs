@@ -33,186 +33,205 @@ async function webSearch(query) {
   return resp.output_text
 }
 
-// Step 1: Find matches
-console.log(`Searching for IPL matches on ${todayIST} and ${tomorrowIST}...`)
-const scheduleText = await webSearch(
-  `IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. List each match with the two teams and start time in IST.`
-)
-
-const parseResp = await openai.chat.completions.create({
-  model: 'gpt-4o',
-  response_format: { type: 'json_object' },
-  messages: [
-    { role: 'system', content: 'Extract IPL match info. Use short team codes: MI, CSK, RCB, GT, SRH, KKR, DC, PBKS, RR, LSG.' },
-    { role: 'user', content: `Extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${scheduleText}\n\nReturn JSON: { "matches": [{ "teams": "GT vs CSK", "team1": "GT", "team2": "CSK", "date": "today", "time_ist": "7:30 PM" }] }` },
-  ],
-})
-const upcomingMatches = JSON.parse(parseResp.choices[0].message.content ?? '{}').matches ?? []
-
-if (!upcomingMatches.length) {
-  console.log('No IPL matches found. Exiting.')
-  process.exit(0)
-}
-
-console.log('Matches:')
-upcomingMatches.forEach(m => console.log(`  ${m.teams} — ${m.date} at ${m.time_ist} IST`))
-console.log()
-
-// Step 2: Fetch current squads in parallel
-const teamCodes = [...new Set(upcomingMatches.flatMap(m => [m.team1, m.team2]))]
-const squads = {}
-
-console.log('Fetching current squads...')
-await Promise.all(teamCodes.map(async (team) => {
-  const squadText = await webSearch(`${team} IPL 2026 squad current players list with roles`)
+async function jsonComplete(systemPrompt, userPrompt) {
   const resp = await openai.chat.completions.create({
     model: 'gpt-4o',
     response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: 'Extract ONLY the current confirmed IPL 2026 squad. Do not include players from previous seasons who are no longer with the team.' },
-      { role: 'user', content: `Extract ${team} IPL 2026 squad from:\n\n${squadText}\n\nReturn JSON: { "team": "${team}", "batsmen": [], "bowlers": [], "allrounders": [], "wicketkeeper": [] }` },
-    ],
+    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
   })
-  squads[team] = JSON.parse(resp.choices[0].message.content ?? '{}')
-  const total = Object.values(squads[team]).filter(Array.isArray).flat().length
-  console.log(`  ${team}: ${total} players`)
-}))
-console.log()
-
-// Step 3: Delete existing open questions
-console.log('Clearing existing open questions...')
-const { count, error: deleteError } = await supabase.from('questions').delete({ count: 'exact' }).eq('status', 'open')
-if (deleteError) throw deleteError
-console.log(`Deleted ${count} questions.\n`)
-
-// Step 4: Generate questions
-const matchList = upcomingMatches.map(m => {
-  const formatSquad = (s) => s ? [
-    s.batsmen?.length ? `Batsmen: ${s.batsmen.join(', ')}` : '',
-    s.wicketkeeper?.length ? `Wicketkeeper: ${s.wicketkeeper.join(', ')}` : '',
-    s.allrounders?.length ? `All-rounders: ${s.allrounders.join(', ')}` : '',
-    s.bowlers?.length ? `Bowlers: ${s.bowlers.join(', ')}` : '',
-  ].filter(Boolean).join(' | ') : 'squad unknown'
-  return `Match: ${m.teams} (${m.date} at ${m.time_ist} IST)
-  ${m.team1} squad — ${formatSquad(squads[m.team1])}
-  ${m.team2} squad — ${formatSquad(squads[m.team2])}`
-}).join('\n\n')
-
-console.log('Generating questions...')
-const completion = await openai.chat.completions.create({
-  model: 'gpt-4o',
-  response_format: { type: 'json_object' },
-  messages: [
-    {
-      role: 'system',
-      content: `You are a sports prediction question generator for IPL 2026.
-Generate exactly 5 prediction questions per match. You MUST only use players from the squads provided.
-
-Rules:
-- question_type: one of match_winner, top_scorer, top_bowler, team_total, player_milestone, toss — use a different type for each of the 5 questions
-- options: 2–4 choices using real player names from the squad or team names
-- context: 2–3 sentences of recent form or head-to-head stats
-- deadline_offset_hours: hours from NOW to 30 min before match start
-- resolve_after_offset_hours: hours from NOW to match end (start + 4h)
-- Respond with JSON: { "matches": [{ "match_tag": "...", "questions": [...] }] }`,
-    },
-    {
-      role: 'user',
-      content: `Current time: ${nowIST} (IST)\n\n${matchList}\n\nEach question JSON:\n{\n  "title": "...",\n  "category": "ipl",\n  "question_type": "match_winner",\n  "options": [...],\n  "deadline_offset_hours": 9,\n  "resolve_after_offset_hours": 13,\n  "context": "..."\n}`,
-    },
-  ],
-})
-
-const parsed = JSON.parse(completion.choices[0].message.content ?? '{}')
-const generatedMatches = parsed.matches ?? []
-console.log(`Generated ${generatedMatches.flatMap(m => m.questions ?? []).length} questions.\n`)
-
-// Step 5: Validate — check every player-name option against the fetched squads
-// match_winner and toss use team names; all others use player names
-const PLAYER_QUESTION_TYPES = ['top_scorer', 'top_bowler', 'player_milestone']
-
-console.log('Validating questions against squads...')
-const validationResults = []
-
-for (const match of generatedMatches) {
-  const src = upcomingMatches.find(m => {
-    const tag = match.match_tag?.toLowerCase() ?? ''
-    return tag.includes(m.team1.toLowerCase()) || tag.includes(m.team2.toLowerCase())
-  }) ?? upcomingMatches[0]
-
-  const squad1 = squads[src.team1] ?? {}
-  const squad2 = squads[src.team2] ?? {}
-  const allPlayers = [
-    ...(squad1.batsmen ?? []), ...(squad1.bowlers ?? []), ...(squad1.allrounders ?? []), ...(squad1.wicketkeeper ?? []),
-    ...(squad2.batsmen ?? []), ...(squad2.bowlers ?? []), ...(squad2.allrounders ?? []), ...(squad2.wicketkeeper ?? []),
-  ].map(p => p.toLowerCase())
-
-  const questionsPayload = (match.questions ?? []).map(q => ({
-    ...q,
-    _match_tag: match.match_tag,
-    _team1: src.team1,
-    _team2: src.team2,
-  }))
-
-  // Ask the validator to fix any options that don't belong to either squad
-  const validatorResp = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    response_format: { type: 'json_object' },
-    messages: [
-      {
-        role: 'system',
-        content: `You are a cricket question validator for IPL 2026.
-For questions of type top_scorer, top_bowler, or player_milestone: every option must be a player currently in one of the two squads listed. If an option is NOT in either squad, replace it with a valid player of the same role from the squads. If the question cannot be fixed with at least 2 valid options, mark it invalid.
-For match_winner and toss: options should be team names only — mark invalid if they contain player names.
-For team_total: options are run ranges — always valid.
-Return the corrected questions. Mark unfixable ones with "valid": false.`,
-      },
-      {
-        role: 'user',
-        content: `Match: ${src.teams}
-${src.team1} full squad: ${JSON.stringify(squads[src.team1])}
-${src.team2} full squad: ${JSON.stringify(squads[src.team2])}
-
-Questions to validate:
-${JSON.stringify(questionsPayload, null, 2)}
-
-Return JSON: { "questions": [ { ...original_fields, "valid": true/false } ] }`,
-      },
-    ],
-  })
-
-  const validated = JSON.parse(validatorResp.choices[0].message.content ?? '{}').questions ?? []
-  const valid = validated.filter(q => q.valid !== false)
-  const dropped = validated.length - valid.length
-
-  if (dropped > 0) console.log(`  [${match.match_tag}] Fixed/dropped ${dropped} invalid question(s)`)
-  else console.log(`  [${match.match_tag}] All questions valid ✓`)
-
-  validationResults.push(...valid.map(({ valid: _v, _match_tag, _team1, _team2, ...q }) => q))
+  return JSON.parse(resp.choices[0].message.content ?? '{}')
 }
 
-if (!validationResults.length) throw new Error('No valid questions after validation')
-console.log(`\n${validationResults.length} questions passed validation.\n`)
+console.log(`\n=== PredictIt Question Generator ===`)
+console.log(`Time: ${nowIST}\n`)
 
-// Step 6: Insert
+// ─── PHASE 1: Discover fixtures & events in parallel ─────────────────────────
+console.log('Phase 1: Searching for fixtures and events...')
+const [iplScheduleText, nbaScheduleText, caText] = await Promise.all([
+  webSearch(`IPL 2026 cricket match schedule for ${todayIST} and ${tomorrowIST}. Teams and start times IST.`),
+  webSearch(`NBA 2026 basketball games scheduled for ${todayIST} and ${tomorrowIST}. Teams and tip-off times.`),
+  webSearch(`India current affairs news ${todayIST} — upcoming events, political decisions, sports results, economic announcements expected in the next 24 to 48 hours where the outcome will be publicly known.`),
+])
+
+// ─── PHASE 2: Parse fixtures & events in parallel ────────────────────────────
+console.log('Phase 2: Parsing fixtures...')
+const [iplParsed, nbaParsed, caParsed] = await Promise.all([
+  jsonComplete(
+    'Extract IPL match info. Use short codes: MI, CSK, RCB, GT, SRH, KKR, DC, PBKS, RR, LSG.',
+    `Extract IPL matches for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${iplScheduleText}\n\nReturn JSON: { "matches": [{ "teams": "GT vs CSK", "team1": "GT", "team2": "CSK", "date": "today", "time_ist": "7:30 PM" }] }`
+  ),
+  jsonComplete(
+    'Extract NBA game info with full team names.',
+    `Extract NBA games for today (${todayIST}) and tomorrow (${tomorrowIST}) from:\n\n${nbaScheduleText}\n\nReturn JSON: { "games": [{ "teams": "Lakers vs Warriors", "team1": "Lakers", "team2": "Warriors", "date": "today", "time_ist": "6:30 AM" }] }`
+  ),
+  jsonComplete(
+    'Extract Indian current affairs events that have an outcome within 24-48 hours. Focus on verifiable, newsworthy events.',
+    `From this news, extract 3-5 Indian current affairs events with outcomes knowable in the next 24-48 hours:\n\n${caText}\n\nReturn JSON: { "events": [{ "topic": "brief topic", "context": "2-3 sentence description", "expected_outcome_hours": 24 }] }`
+  ),
+])
+
+const iplMatches = iplParsed.matches ?? []
+const nbaGames = nbaParsed.games ?? []
+const caEvents = caParsed.events ?? []
+
+console.log(`  IPL: ${iplMatches.length} match(es) — ${iplMatches.map(m => m.teams).join(', ') || 'none'}`)
+console.log(`  NBA: ${nbaGames.length} game(s) — ${nbaGames.map(g => g.teams).join(', ') || 'none'}`)
+console.log(`  Current Affairs: ${caEvents.length} event(s)`)
+console.log()
+
+// ─── PHASE 3: Fetch IPL squads in parallel ───────────────────────────────────
+let squads = {}
+if (iplMatches.length) {
+  console.log('Phase 3: Fetching IPL squads...')
+  const teamCodes = [...new Set(iplMatches.flatMap(m => [m.team1, m.team2]))]
+  await Promise.all(teamCodes.map(async (team) => {
+    const squadText = await webSearch(`${team} IPL 2026 squad current players list with roles`)
+    const parsed = await jsonComplete(
+      'Extract ONLY the current confirmed IPL 2026 squad. Do not include players from previous seasons who left this team.',
+      `Extract ${team} IPL 2026 squad from:\n\n${squadText}\n\nReturn JSON: { "team": "${team}", "batsmen": [], "bowlers": [], "allrounders": [], "wicketkeeper": [] }`
+    )
+    squads[team] = parsed
+    const total = Object.values(parsed).filter(Array.isArray).flat().length
+    console.log(`  ${team}: ${total} players`)
+  }))
+  console.log()
+}
+
+// ─── PHASE 4: Generate questions for all categories ──────────────────────────
+console.log('Phase 4: Generating questions...')
+let allGenerated = []
+
+// --- IPL ---
+if (iplMatches.length) {
+  const matchList = iplMatches.map(m => {
+    const fmt = (s) => s ? [
+      s.batsmen?.length ? `Batsmen: ${s.batsmen.join(', ')}` : '',
+      s.wicketkeeper?.length ? `WK: ${s.wicketkeeper.join(', ')}` : '',
+      s.allrounders?.length ? `All-rounders: ${s.allrounders.join(', ')}` : '',
+      s.bowlers?.length ? `Bowlers: ${s.bowlers.join(', ')}` : '',
+    ].filter(Boolean).join(' | ') : 'squad unknown'
+    return `Match: ${m.teams} (${m.date} at ${m.time_ist} IST)\n  ${m.team1}: ${fmt(squads[m.team1])}\n  ${m.team2}: ${fmt(squads[m.team2])}`
+  }).join('\n\n')
+
+  const iplResp = await jsonComplete(
+    `You are an IPL 2026 prediction question generator. Generate exactly 5 questions per match. ONLY use players from the provided squads.
+Rules:
+- question_type: one of match_winner, top_scorer, top_bowler, team_total, player_milestone, toss — different type per question
+- options: 2-4 choices using real squad player names or team names
+- context: 2-3 sentences of recent form or head-to-head stats
+- deadline_offset_hours: hours from NOW to 30 min before match start (IPL evening = 7:30 PM IST)
+- resolve_after_offset_hours: hours from NOW to match end (start + 4h)
+- Respond with JSON: { "matches": [{ "match_tag": "...", "questions": [...] }] }`,
+    `Current time: ${nowIST}\n\n${matchList}\n\nEach question: { "title":"...","category":"ipl","question_type":"match_winner","options":[...],"deadline_offset_hours":9,"resolve_after_offset_hours":13,"context":"..." }`
+  )
+
+  // Validate IPL questions against squads
+  for (const match of (iplResp.matches ?? [])) {
+    const src = iplMatches.find(m => (match.match_tag ?? '').toLowerCase().includes(m.team1.toLowerCase())) ?? iplMatches[0]
+    const valResp = await jsonComplete(
+      `You are a cricket question validator for IPL 2026. Return JSON.
+For top_scorer, top_bowler, player_milestone: every option must be a player in one of the two squads. If not, replace with a valid player of the same role. Mark unfixable questions "valid": false.
+For match_winner and toss: options must be team names only.
+For team_total: always valid.`,
+      `Match: ${src.teams}\n${src.team1} squad: ${JSON.stringify(squads[src.team1])}\n${src.team2} squad: ${JSON.stringify(squads[src.team2])}\n\nValidate:\n${JSON.stringify(match.questions)}\n\nReturn: { "questions": [{...original, "valid": true}] }`
+    )
+    const valid = (valResp.questions ?? []).filter(q => q.valid !== false).map(({ valid: _v, ...q }) => q)
+    const dropped = (match.questions?.length ?? 0) - valid.length
+    if (dropped) console.log(`  [IPL ${src.teams}] Fixed/dropped ${dropped} invalid question(s)`)
+    allGenerated.push(...valid)
+  }
+  console.log(`  IPL: ${allGenerated.length} questions`)
+}
+
+// --- NBA ---
+if (nbaGames.length) {
+  const gameList = nbaGames.map(g => `Game: ${g.teams} (${g.date} at ${g.time_ist} IST)`).join('\n')
+  const countNeeded = Math.min(5, nbaGames.length * 3)
+
+  const nbaResp = await jsonComplete(
+    `You are an NBA 2026 prediction question generator. Generate exactly ${countNeeded} prediction questions spread across the games listed.
+Rules:
+- question_type: one of match_winner, top_scorer, player_milestone — different types
+- options: 2-4 plausible choices using real current NBA player names
+- context: 2-3 sentences of recent form or head-to-head stats
+- deadline_offset_hours: hours from NOW to 30 min before tip-off
+- resolve_after_offset_hours: hours from NOW to game end (tip-off + 3h)
+- Respond with JSON: { "questions": [...] }`,
+    `Current time: ${nowIST}\n\n${gameList}\n\nGenerate ${countNeeded} NBA questions.\n\nEach: { "title":"...","category":"nba","question_type":"match_winner","options":[...],"deadline_offset_hours":5,"resolve_after_offset_hours":8,"context":"..." }`
+  )
+
+  const nbaQs = nbaResp.questions ?? []
+  allGenerated.push(...nbaQs)
+  console.log(`  NBA: ${nbaQs.length} questions`)
+} else {
+  // No games today/tomorrow — generate 5 general NBA season questions
+  const nbaResp = await jsonComplete(
+    `You are an NBA 2026 prediction question generator. Generate 5 prediction questions about upcoming NBA games or season outcomes.
+Rules:
+- question_type: one of match_winner, top_scorer, player_milestone
+- options: 2-4 plausible choices using real current NBA player names or teams
+- context: 2-3 sentences of recent form or standings
+- deadline_offset_hours: 24 (deadline is 24 hours from now)
+- resolve_after_offset_hours: 36
+- Respond with JSON: { "questions": [...] }`,
+    `Current time: ${nowIST}\n\nGenerate 5 NBA 2026 prediction questions about the next game or upcoming matchups.\n\nEach: { "title":"...","category":"nba","question_type":"match_winner","options":[...],"deadline_offset_hours":24,"resolve_after_offset_hours":36,"context":"..." }`
+  )
+  const nbaQs = nbaResp.questions ?? []
+  allGenerated.push(...nbaQs)
+  console.log(`  NBA (general): ${nbaQs.length} questions`)
+}
+
+// --- Current Affairs ---
+const caEventSummary = caEvents.length > 0
+  ? caEvents.map(e => `- ${e.topic}: ${e.context} (outcome expected in ~${e.expected_outcome_hours}h)`).join('\n')
+  : 'Search web for current Indian news events with outcomes in next 24-48 hours'
+
+const caResp = await jsonComplete(
+  `You are an Indian current affairs prediction question generator. Generate exactly 5 prediction questions about newsworthy events in India where the outcome will be publicly known in the next 24-48 hours.
+Rules:
+- Cover a variety of topics: politics, economy, sports (non-cricket), entertainment, technology
+- Each question must have a clear verifiable outcome
+- question_type: one of outcome, policy, market
+- options: 2-4 distinct, plausible choices
+- context: 2-3 sentences of background context
+- deadline_offset_hours: hours from NOW until predictions should close (before outcome is known)
+- resolve_after_offset_hours: hours from NOW until the outcome will be publicly confirmed
+- Respond with JSON: { "questions": [...] }`,
+  `Current time: ${nowIST}\n\nCurrent affairs context:\n${caEventSummary}\n\nGenerate 5 Indian current affairs prediction questions.\n\nEach: { "title":"...","category":"current_events","question_type":"outcome","options":[...],"deadline_offset_hours":20,"resolve_after_offset_hours":30,"context":"..." }`
+)
+
+const caQs = caResp.questions ?? []
+allGenerated.push(...caQs)
+console.log(`  Current Affairs: ${caQs.length} questions`)
+console.log(`\nTotal: ${allGenerated.length} questions generated.\n`)
+
+if (!allGenerated.length) throw new Error('No questions generated')
+
+// ─── PHASE 5: Clear existing + insert ────────────────────────────────────────
+console.log('Phase 5: Clearing existing open questions...')
+const { count, error: deleteError } = await supabase.from('questions').delete({ count: 'exact' }).eq('status', 'open')
+if (deleteError) throw deleteError
+console.log(`Deleted ${count} questions.`)
+
 const now = new Date()
-const SEED_USERNAMES = ['CricketGuru99', 'HoopDreamer', 'SixHitter', 'ThreePointer7', 'ViratFanatic', 'NBATitan', 'KKRLoyalist', 'SpursNation', 'IPLKing2026', 'NBAOracle']
-
-const rows = validationResults.map(q => ({
+const rows = allGenerated.map(q => ({
   title: q.title,
   category: q.category,
-  question_type: q.question_type,
+  question_type: q.question_type ?? null,
   options: q.options,
-  context: q.context,
-  deadline: new Date(now.getTime() + q.deadline_offset_hours * 60 * 60 * 1000).toISOString(),
-  resolve_after: new Date(now.getTime() + q.resolve_after_offset_hours * 60 * 60 * 1000).toISOString(),
+  context: q.context ?? null,
+  deadline: new Date(now.getTime() + (q.deadline_offset_hours ?? 24) * 60 * 60 * 1000).toISOString(),
+  resolve_after: new Date(now.getTime() + (q.resolve_after_offset_hours ?? 36) * 60 * 60 * 1000).toISOString(),
   status: 'open',
 }))
 
-const { data, error } = await supabase.from('questions').insert(rows).select('id, title')
+const { data, error } = await supabase.from('questions').insert(rows).select('id, title, category')
 if (error) throw error
 
+// ─── PHASE 6: Seed bot opinions ──────────────────────────────────────────────
+const SEED_USERNAMES = ['CricketGuru99', 'HoopDreamer', 'SixHitter', 'ThreePointer7', 'ViratFanatic', 'NBATitan', 'KKRLoyalist', 'SpursNation', 'IPLKing2026', 'NBAOracle']
 const { data: seedUsers } = await supabase.from('users').select('id').in('username', SEED_USERNAMES)
+
 if (seedUsers?.length) {
   const weightedRandom = (n) => {
     const w = Array.from({ length: n }, () => Math.random())
@@ -222,11 +241,15 @@ if (seedUsers?.length) {
     for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i }
     return n - 1
   }
-  const opinions = seedUsers.flatMap(u => rows.map((q, i) => ({ user_id: u.id, question_id: data[i].id, chosen_option: weightedRandom(q.options.length) })))
+  const opinions = seedUsers.flatMap(u =>
+    rows.map((q, i) => ({ user_id: u.id, question_id: data[i].id, chosen_option: weightedRandom(q.options.length) }))
+  )
   await supabase.from('predictions').insert(opinions)
-  console.log(`Seeded ${opinions.length} bot opinions.`)
+  console.log(`Seeded ${opinions.length} bot opinions (${seedUsers.length} users × ${rows.length} questions).`)
 }
 
+// ─── Summary ─────────────────────────────────────────────────────────────────
+const byCategory = data.reduce((acc, q) => { acc[q.category] = (acc[q.category] || 0) + 1; return acc }, {})
 console.log(`\nInserted ${data.length} questions:`)
-data.forEach((q, i) => console.log(`  ${i + 1}. ${q.title}`))
+Object.entries(byCategory).forEach(([cat, count]) => console.log(`  ${cat}: ${count}`))
 console.log('\nDone!')

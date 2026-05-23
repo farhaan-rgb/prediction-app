@@ -10,7 +10,7 @@ export interface User {
   created_at: string
 }
 
-export type QuestionType = 'match_winner' | 'top_scorer' | 'top_bowler' | 'team_total' | 'player_milestone' | 'toss'
+export type QuestionType = 'match_winner' | 'top_scorer' | 'top_bowler' | 'team_total' | 'player_milestone' | 'toss' | 'outcome' | 'policy' | 'market'
 
 export interface Question {
   id: string
