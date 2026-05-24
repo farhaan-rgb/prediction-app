@@ -264,10 +264,19 @@ Respond with JSON: { "questions": [...] }`,
     // Phase 5: Clear + insert
     await supabase.from('questions').delete().eq('status', 'open')
 
+    const VALID_CATEGORIES = new Set(['ipl', 'nba', 'current_events', 'stocks', 'crypto', 'movies'])
+    const CATEGORY_NORMALIZE: Record<string, string> = {
+      index: 'stocks', stock: 'stocks', equity: 'stocks', indices: 'stocks',
+      bitcoin: 'crypto', cryptocurrency: 'crypto', crypto_currency: 'crypto',
+      movie: 'movies', box_office: 'movies', film: 'movies',
+      news: 'current_events', current_affairs: 'current_events', world: 'current_events',
+    }
+    const normalizeCategory = (c: string) => CATEGORY_NORMALIZE[c] ?? (VALID_CATEGORIES.has(c) ? c : 'current_events')
+
     const now = new Date()
     const rows = checkedQuestions.map(q => ({
       title: q.title,
-      category: q.category,
+      category: normalizeCategory(q.category),
       question_type: q.question_type ?? null,
       options: q.options,
       context: q.context ?? null,
