@@ -65,7 +65,7 @@ function PredictionCard({ item }: { item: PredictionWithQuestion }) {
         </span>
       </div>
 
-      <p className="text-sm font-semibold text-white mb-2 leading-snug">{q.title}</p>
+      <p className="text-sm font-semibold text-[var(--c-text)] mb-2 leading-snug">{q.title}</p>
 
       <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${
         isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
@@ -128,10 +128,10 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-          <Clock className="w-5 h-5 text-white" />
+          <Clock className="w-5 h-5 text-[var(--c-text)]" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">My Predictions</h1>
+          <h1 className="text-xl font-bold text-[var(--c-text)]">My Predictions</h1>
           {items.length > 0 && (
             <p className="text-xs text-[var(--c-secondary)] mt-0.5">
               {items.length} total
@@ -145,7 +145,7 @@ export default function HistoryPage() {
       {results.length > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-5">
           <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-xl p-3 text-center">
-            <p className="text-xl font-bold text-white">{items.length}</p>
+            <p className="text-xl font-bold text-[var(--c-text)]">{items.length}</p>
             <p className="text-[10px] text-[var(--c-muted)] mt-0.5">Total Picks</p>
           </div>
           <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-xl p-3 text-center">

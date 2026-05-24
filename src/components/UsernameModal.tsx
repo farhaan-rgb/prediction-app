@@ -72,7 +72,7 @@ export default function UsernameModal() {
 
           <div className="relative">
             <p className="text-center text-sm text-[var(--c-muted)] mb-1 font-medium">Welcome aboard,</p>
-            <h2 className="text-2xl font-black text-white text-center mb-1">
+            <h2 className="text-2xl font-black text-[var(--c-text)] text-center mb-1">
               @{pendingUser.username} 🎯
             </h2>
             <p className="text-center text-xs text-[var(--c-muted)] mb-6">Here's how this works.</p>
@@ -85,14 +85,14 @@ export default function UsernameModal() {
               ].map(({ icon, text }) => (
                 <div key={icon} className="flex items-center gap-3.5 bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-3.5">
                   <span className="text-2xl flex-shrink-0">{icon}</span>
-                  <p className="text-sm font-semibold text-white leading-snug">{text}</p>
+                  <p className="text-sm font-semibold text-[var(--c-text)] leading-snug">{text}</p>
                 </div>
               ))}
             </div>
 
             <button
               onClick={handleStart}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-base shadow-lg shadow-indigo-900/40"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-[var(--c-text)] font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-base shadow-lg shadow-indigo-900/40"
             >
               Start Predicting
               <ArrowRight className="w-4 h-4" />
@@ -111,9 +111,9 @@ export default function UsernameModal() {
 
         <div className="flex flex-col items-center mb-7">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-900/50">
-            <Target className="w-8 h-8 text-white" />
+            <Target className="w-8 h-8 text-[var(--c-text)]" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Pick your name</h2>
+          <h2 className="text-2xl font-bold text-[var(--c-text)]">Pick your name</h2>
           <p className="text-[var(--c-secondary)] text-sm mt-1.5 text-center">Choose a username to start predicting</p>
         </div>
 
@@ -124,14 +124,14 @@ export default function UsernameModal() {
             onChange={(e) => { setUsername(e.target.value); setError('') }}
             placeholder="e.g. cricket_king"
             maxLength={20}
-            className="w-full bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-3.5 text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500 text-center text-lg font-medium tracking-wide"
+            className="w-full bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-3.5 text-[var(--c-text)] placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500 text-center text-lg font-medium tracking-wide"
             autoFocus
           />
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
           <button
             type="submit"
             disabled={loading || username.trim().length < 3}
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 disabled:from-indigo-800 disabled:to-purple-800 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 text-base"
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 disabled:from-indigo-800 disabled:to-purple-800 disabled:opacity-50 text-[var(--c-text)] font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 text-base"
           >
             <Zap className="w-4 h-4" />
             {loading ? 'Joining...' : "Let's Play!"}

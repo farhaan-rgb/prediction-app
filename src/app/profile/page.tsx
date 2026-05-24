@@ -213,10 +213,10 @@ export default function ProfilePage() {
             className="relative w-16 h-16 rounded-2xl bg-[var(--c-card)] border border-[var(--c-border)] flex items-center justify-center text-3xl flex-shrink-0 hover:border-indigo-500/40 transition-colors group"
           >
             {avatar}
-            <span className="absolute -bottom-1 -right-1 text-[10px] bg-indigo-600 rounded-full w-4 h-4 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">✎</span>
+            <span className="absolute -bottom-1 -right-1 text-[10px] bg-indigo-600 rounded-full w-4 h-4 flex items-center justify-center text-[var(--c-text)] opacity-0 group-hover:opacity-100 transition-opacity">✎</span>
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black text-white">@{user.username}</h1>
+            <h1 className="text-xl font-black text-[var(--c-text)]">@{user.username}</h1>
             <p className="text-sm text-[var(--c-secondary)] mt-0.5">{getTitle(accuracy, totalPredictions)}</p>
             <div className={`inline-flex items-center gap-1 mt-1 text-xs font-bold ${LEVEL_COLORS[level]}`}>
               <span>LVL {level}</span>
@@ -299,7 +299,7 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--c-border)]">
           <div className="flex items-center gap-1.5">
             <span className="text-sm">🎰</span>
-            <span className="text-sm font-bold text-white">{chips} chips</span>
+            <span className="text-sm font-bold text-[var(--c-text)]">{chips} chips</span>
           </div>
           <button
             onClick={handleBuyFreeze}
@@ -352,14 +352,14 @@ export default function ProfilePage() {
             <span className="text-base">🎯</span>
             <span className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider">Predictions</span>
           </div>
-          <p className="text-2xl font-black text-white">{totalPredictions}</p>
+          <p className="text-2xl font-black text-[var(--c-text)]">{totalPredictions}</p>
         </div>
         <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-base">📊</span>
             <span className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider">Accuracy</span>
           </div>
-          <p className={`text-2xl font-black ${accuracy >= 70 ? 'text-emerald-400' : accuracy >= 50 ? 'text-amber-400' : 'text-white'}`}>
+          <p className={`text-2xl font-black ${accuracy >= 70 ? 'text-emerald-400' : accuracy >= 50 ? 'text-amber-400' : 'text-[var(--c-text)]'}`}>
             {resolvedCount > 0 ? `${accuracy}%` : '—'}
           </p>
         </div>
@@ -375,7 +375,7 @@ export default function ProfilePage() {
       {/* Prediction log */}
       <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl overflow-hidden mb-4">
         <div className="px-4 py-3 border-b border-[var(--c-border)] flex items-center justify-between">
-          <p className="text-sm font-bold text-white">Prediction Log</p>
+          <p className="text-sm font-bold text-[var(--c-text)]">Prediction Log</p>
           <span className="text-xs text-[var(--c-muted)]">{items.length} total</span>
         </div>
         {loading ? (
@@ -418,7 +418,7 @@ export default function ProfilePage() {
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{q.title}</p>
+                    <p className="text-xs font-semibold text-[var(--c-text)] truncate">{q.title}</p>
                     <p className="text-[11px] text-[var(--c-muted)] truncate mt-0.5">
                       Picked: {q.options[item.chosen_option]}
                       {isCorrect && <span className="text-emerald-400 ml-1">+10 pts</span>}
@@ -439,7 +439,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl px-4 py-3.5 mb-3">
         <div className="flex items-center gap-2.5">
           {theme === 'dark' ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
-          <span className="text-sm font-semibold text-white">{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+          <span className="text-sm font-semibold text-[var(--c-text)]">{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
         </div>
         <button
           onClick={toggleTheme}

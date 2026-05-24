@@ -241,7 +241,7 @@ export default function QuestionDetailPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 pt-4 pb-8">
-      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[var(--c-muted)] hover:text-white transition-colors text-sm mb-5">
+      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[var(--c-muted)] hover:text-[var(--c-text)] transition-colors text-sm mb-5">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
@@ -264,7 +264,7 @@ export default function QuestionDetailPage() {
           </div>
 
           {/* Title */}
-          <h1 className="text-xl font-bold text-white leading-snug mb-5">{question.title}</h1>
+          <h1 className="text-xl font-bold text-[var(--c-text)] leading-snug mb-5">{question.title}</h1>
 
           {/* Countdown / participants */}
           {!isResolved && (
@@ -277,7 +277,7 @@ export default function QuestionDetailPage() {
                 <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider mb-1">Participants</p>
                 <div className="flex items-center gap-1.5 justify-end">
                   <Users className="w-4 h-4 text-[var(--c-secondary)]" />
-                  <span className="text-lg font-bold text-white">{totalVotes}</span>
+                  <span className="text-lg font-bold text-[var(--c-text)]">{totalVotes}</span>
                 </div>
               </div>
             </div>
@@ -300,7 +300,7 @@ export default function QuestionDetailPage() {
                     <div key={oi} className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                       <span className="text-xs text-[var(--c-secondary)] truncate max-w-[120px]">{option}</span>
-                      <span className="text-xs font-bold text-white">{pct}%</span>
+                      <span className="text-xs font-bold text-[var(--c-text)]">{pct}%</span>
                     </div>
                   )
                 })}
@@ -335,14 +335,14 @@ export default function QuestionDetailPage() {
 
                     {/* Option name */}
                     <span className={`flex-1 text-sm font-medium truncate ${
-                      isCorrect ? 'text-emerald-300' : isChosen ? 'text-indigo-300' : 'text-white'
+                      isCorrect ? 'text-emerald-300' : isChosen ? 'text-indigo-300' : 'text-[var(--c-text)]'
                     }`}>
                       {option}
                     </span>
 
                     {/* % + delta */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-base font-black tabular-nums text-white">
+                      <span className="text-base font-black tabular-nums text-[var(--c-text)]">
                         {totalVotes > 0 ? `${pct}%` : '—'}
                       </span>
                       {delta !== null && delta !== 0 && (
@@ -377,7 +377,7 @@ export default function QuestionDetailPage() {
                 <Trophy className="w-4 h-4 text-emerald-400" />
                 <p className="text-sm font-bold text-emerald-400">Correct answer</p>
               </div>
-              <p className="text-white font-semibold">
+              <p className="text-[var(--c-text)] font-semibold">
                 {question.correct_option !== null && question.options[question.correct_option!]}
               </p>
               {prediction && (
@@ -393,7 +393,7 @@ export default function QuestionDetailPage() {
               <p className="text-xs font-bold text-[var(--c-muted)] uppercase tracking-wider mb-1">Your pick</p>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-indigo-400" />
-                <p className="text-white font-semibold">{question.options[prediction.chosen_option]}</p>
+                <p className="text-[var(--c-text)] font-semibold">{question.options[prediction.chosen_option]}</p>
               </div>
             </div>
           ) : canPredict ? (
@@ -405,7 +405,7 @@ export default function QuestionDetailPage() {
                     key={oi}
                     onClick={() => handlePredict(oi)}
                     disabled={submitting}
-                    className="w-full text-left px-4 py-3.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-base)] text-[var(--c-secondary)] hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-white transition-all text-sm font-medium disabled:opacity-40 flex items-center gap-3"
+                    className="w-full text-left px-4 py-3.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-base)] text-[var(--c-secondary)] hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-[var(--c-text)] transition-all text-sm font-medium disabled:opacity-40 flex items-center gap-3"
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: OPTION_COLORS[oi] ?? '#475569' }} />
                     {option}

@@ -150,7 +150,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
     }
     if (isChosen) return 'border-indigo-500/50 text-indigo-300 font-semibold'
     if (!canPredict) return 'border-[var(--c-border)] text-[var(--c-muted)] cursor-default'
-    return 'border-[var(--c-border)] text-[var(--c-secondary)] hover:border-indigo-500/40 hover:text-white active:scale-[0.98] cursor-pointer'
+    return 'border-[var(--c-border)] text-[var(--c-secondary)] hover:border-indigo-500/40 hover:text-[var(--c-text)] active:scale-[0.98] cursor-pointer'
   }
 
   return (
@@ -200,7 +200,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
           onClick={() => sessionStorage.setItem('predictit_scroll', String(window.scrollY))}
           className="group flex items-start justify-between gap-2 mb-1"
         >
-          <h3 className="text-[15px] font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">
+          <h3 className="text-[15px] font-bold text-[var(--c-text)] leading-snug group-hover:text-indigo-300 transition-colors">
             {question.title}
           </h3>
           <ChevronRight className="w-4 h-4 text-[var(--c-border-muted)] group-hover:text-indigo-400 flex-shrink-0 mt-0.5 transition-colors" />

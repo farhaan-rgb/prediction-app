@@ -123,7 +123,7 @@ export default function AdminPage() {
     fetchQuestions()
   }
 
-  const inputClass = "w-full bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-2.5 text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500 text-sm"
+  const inputClass = "w-full bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-2.5 text-[var(--c-text)] placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500 text-sm"
 
   if (!authed) {
     return (
@@ -133,7 +133,7 @@ export default function AdminPage() {
             <div className="w-14 h-14 bg-[var(--c-border)] rounded-2xl flex items-center justify-center mb-3">
               <Lock className="w-7 h-7 text-[var(--c-muted)]" />
             </div>
-            <h1 className="text-xl font-bold text-white">Admin</h1>
+            <h1 className="text-xl font-bold text-[var(--c-text)]">Admin</h1>
           </div>
           <form onSubmit={handleAuth} className="space-y-4">
             <input
@@ -144,7 +144,7 @@ export default function AdminPage() {
               className={inputClass}
             />
             {authError && <p className="text-red-400 text-sm">{authError}</p>}
-            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl">
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-[var(--c-text)] font-bold py-3 rounded-xl">
               Enter
             </button>
           </form>
@@ -155,11 +155,11 @@ export default function AdminPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+      <h1 className="text-xl font-bold text-[var(--c-text)]">Admin Panel</h1>
 
       {/* Add Question */}
       <section className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-2xl p-5">
-        <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-base font-bold text-[var(--c-text)] mb-4 flex items-center gap-2">
           <PlusCircle className="w-4 h-4 text-indigo-400" /> Add Question
         </h2>
         <form onSubmit={handleAddQuestion} className="space-y-3">
@@ -183,7 +183,7 @@ export default function AdminPage() {
           <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} className={inputClass} />
           {formError && <p className="text-red-400 text-sm">{formError}</p>}
           {formSuccess && <p className="text-emerald-400 text-sm font-medium">{formSuccess}</p>}
-          <button type="submit" disabled={submitting} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold px-5 py-2.5 rounded-xl text-sm">
+          <button type="submit" disabled={submitting} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-[var(--c-text)] font-bold px-5 py-2.5 rounded-xl text-sm">
             {submitting ? 'Adding...' : 'Add Question'}
           </button>
         </form>
@@ -191,7 +191,7 @@ export default function AdminPage() {
 
       {/* Resolve */}
       <section className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-2xl p-5">
-        <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-base font-bold text-[var(--c-text)] mb-4 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 text-emerald-400" /> Resolve Questions
         </h2>
         {loading ? (
@@ -205,7 +205,7 @@ export default function AdminPage() {
                   className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--c-card)]"
                 >
                   <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium text-white truncate">{q.title}</p>
+                    <p className="text-sm font-medium text-[var(--c-text)] truncate">{q.title}</p>
                     <p className="text-xs text-[var(--c-muted)] mt-0.5">
                       {q.status === 'resolved' ? '✓ Resolved' :
                         isPast(new Date(q.deadline)) ? '⚠ Expired — needs resolution' :

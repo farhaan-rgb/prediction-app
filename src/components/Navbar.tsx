@@ -23,9 +23,9 @@ export default function Navbar() {
         <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-              <Target className="w-4 h-4 text-white" />
+              <Target className="w-4 h-4 text-[var(--c-text)]" />
             </div>
-            <span className="font-bold text-white text-base tracking-tight">PredictIt</span>
+            <span className="font-bold text-[var(--c-text)] text-base tracking-tight">PredictIt</span>
           </Link>
 
           {user && (

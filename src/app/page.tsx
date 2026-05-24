@@ -35,7 +35,7 @@ function FirstPickModal({ username, onClose }: { username: string; onClose: () =
 
         <div className="relative text-center mb-6">
           <div className="text-5xl mb-3">🎯</div>
-          <h2 className="text-xl font-black text-white uppercase tracking-wide">First pick locked.</h2>
+          <h2 className="text-xl font-black text-[var(--c-text)] uppercase tracking-wide">First pick locked.</h2>
           <p className="text-sm text-[var(--c-secondary)] mt-1">You're officially in the game, @{username}.</p>
         </div>
 
@@ -53,7 +53,7 @@ function FirstPickModal({ username, onClose }: { username: string; onClose: () =
 
         <div className="bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-3.5 mb-6 text-center">
           <p className="text-xs text-[var(--c-secondary)] leading-relaxed">
-            Come back <span className="text-white font-bold">tomorrow</span>. Predict daily, build your streak,
+            Come back <span className="text-[var(--c-text)] font-bold">tomorrow</span>. Predict daily, build your streak,
             and stack chips to unlock <span className="text-indigo-400 font-bold">exclusive markets</span>.
             The race to the top starts now.
           </p>
@@ -61,7 +61,7 @@ function FirstPickModal({ username, onClose }: { username: string; onClose: () =
 
         <button
           onClick={onClose}
-          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-base shadow-lg shadow-indigo-900/40"
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-[var(--c-text)] font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-base shadow-lg shadow-indigo-900/40"
         >
           <Zap className="w-4 h-4" />
           Let's go 🔥
@@ -89,7 +89,7 @@ function ContextualBanner({ bannerKey, onDismiss }: { bannerKey: BannerKey; onDi
     <div className="flex items-start gap-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-4 py-3 mb-3 animate-fade-up">
       <span className="text-lg flex-shrink-0 mt-0.5">{config.icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white">{config.text}</p>
+        <p className="text-sm font-semibold text-[var(--c-text)]">{config.text}</p>
         <p className="text-xs text-[var(--c-muted)] mt-0.5">{config.sub}</p>
       </div>
       <button onClick={onDismiss} className="text-[var(--c-muted)] hover:text-[var(--c-secondary)] flex-shrink-0 mt-0.5">
@@ -240,7 +240,7 @@ export default function HomePage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search questions..."
-            className="w-full bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="w-full bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl pl-9 pr-9 py-2.5 text-sm text-[var(--c-text)] placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
           />
           {search && (
             <button
@@ -260,7 +260,7 @@ export default function HomePage() {
               onClick={() => setFilter(key)}
               className={`flex-shrink-0 flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full border transition-all whitespace-nowrap ${
                 filter === key
-                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
+                  ? 'bg-indigo-600 border-indigo-500 text-[var(--c-text)] shadow-lg shadow-indigo-900/40'
                   : 'bg-[var(--c-card)] border-[var(--c-border)] text-[var(--c-muted)] hover:text-[var(--c-secondary)]'
               }`}
             >
@@ -278,7 +278,7 @@ export default function HomePage() {
               Prediction Deck
             </span>
             {!loading && (
-              <span className="text-xs font-bold text-white bg-[var(--c-border)] px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-[var(--c-text)] bg-[var(--c-border)] px-2 py-0.5 rounded-full">
                 {visibleQuestions.length}
               </span>
             )}

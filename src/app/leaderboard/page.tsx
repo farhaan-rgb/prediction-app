@@ -132,7 +132,7 @@ export default function LeaderboardPage() {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-[10px] font-bold text-amber-500/70 uppercase tracking-widest mb-1">Tournament Standing</p>
-            <h1 className="text-2xl font-black text-white">IPL Oracle</h1>
+            <h1 className="text-2xl font-black text-[var(--c-text)]">IPL Oracle</h1>
             <p className="text-sm text-[var(--c-secondary)] mt-1 max-w-xs">
               Forecast IPL matches, climb the ranks, claim bragging rights.
             </p>
@@ -142,7 +142,7 @@ export default function LeaderboardPage() {
         {currentUser && currentUserRank > 0 && (
           <div className="mt-3 inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
             <span className="text-xs text-[var(--c-secondary)]">Your rank</span>
-            <span className="text-sm font-black text-white">#{currentUserRank}</span>
+            <span className="text-sm font-black text-[var(--c-text)]">#{currentUserRank}</span>
           </div>
         )}
       </div>
@@ -154,7 +154,7 @@ export default function LeaderboardPage() {
             ⚡
           </div>
           <div>
-            <p className="text-sm font-bold text-white">Daily Check-In</p>
+            <p className="text-sm font-bold text-[var(--c-text)]">Daily Check-In</p>
             <p className="text-xs text-[var(--c-muted)] mt-0.5">Keep your streak alive</p>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function LeaderboardPage() {
             onClick={() => setSortMode(mode)}
             className={`flex-1 text-xs font-bold py-2 rounded-lg capitalize transition-all ${
               sortMode === mode
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-indigo-600 text-[var(--c-text)]'
                 : 'text-[var(--c-muted)] hover:text-[var(--c-secondary)]'
             }`}
           >
@@ -204,7 +204,7 @@ export default function LeaderboardPage() {
           placeholder="Search forecasters..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500/50"
+          className="w-full bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl pl-9 pr-4 py-2.5 text-sm text-[var(--c-text)] placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500/50"
         />
       </div>
 
@@ -246,14 +246,14 @@ export default function LeaderboardPage() {
                 </div>
 
                 {/* Avatar */}
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0 ${avatarBg(u.username)}`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-[var(--c-text)] flex-shrink-0 ${avatarBg(u.username)}`}>
                   {getInitials(u.username)}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`font-bold text-sm truncate ${isCurrentUser ? 'text-indigo-400' : 'text-white'}`}>
+                    <span className={`font-bold text-sm truncate ${isCurrentUser ? 'text-indigo-400' : 'text-[var(--c-text)]'}`}>
                       @{u.username}
                     </span>
                     {isCurrentUser && (
