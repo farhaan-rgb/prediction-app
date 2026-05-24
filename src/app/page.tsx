@@ -7,7 +7,7 @@ import { useUser } from '@/context/UserContext'
 import QuestionCard from '@/components/QuestionCard'
 import UsernameModal from '@/components/UsernameModal'
 import { isPast } from 'date-fns'
-import { Flame, RefreshCw } from 'lucide-react'
+import { Flame, RefreshCw, Search, X } from 'lucide-react'
 
 type LeagueFilter = 'all' | 'ipl' | 'nba' | 'current_events' | 'stocks' | 'crypto' | 'movies'
 
@@ -28,6 +28,7 @@ export default function HomePage() {
   const [distribution, setDistribution] = useState<Record<string, Record<number, number>>>({})
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<LeagueFilter>('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => { fetchQuestions() }, [])
 
@@ -100,15 +101,36 @@ export default function HomePage() {
     setQuestions(prev => prev.filter(q => q.id !== questionId))
   }
 
-  const visibleQuestions = filter === 'all'
-    ? questions
-    : questions.filter(q => q.category === filter)
+  const searchTerm = search.trim().toLowerCase()
+  const visibleQuestions = questions
+    .filter(q => filter === 'all' || q.category === filter)
+    .filter(q => !searchTerm || q.title.toLowerCase().includes(searchTerm))
 
   return (
     <>
       {!userLoading && !user && <UsernameModal />}
 
       <main className="max-w-2xl mx-auto px-4 pt-4 pb-4">
+
+        {/* Search bar */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4a5568] pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search questions..."
+            className="w-full bg-[#0c0f1d] border border-[#1e2438] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-[#4a5568] focus:outline-none focus:border-indigo-500/50 transition-colors"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4a5568] hover:text-[#8892aa] transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
         {/* Filter tabs — horizontally scrollable */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide pb-0.5 -mx-4 px-4">
@@ -157,10 +179,14 @@ export default function HomePage() {
         ) : visibleQuestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-2xl bg-[#0c0f1d] border border-[#1e2438] flex items-center justify-center mb-4 text-2xl">
-              🏏
+              {searchTerm ? '🔍' : '🏏'}
             </div>
-            <p className="text-[#8892aa] font-medium">No open questions right now</p>
-            <p className="text-[#4a5568] text-sm mt-1">Check back soon for new predictions</p>
+            <p className="text-[#8892aa] font-medium">
+              {searchTerm ? `No questions matching "${search}"` : 'No open questions right now'}
+            </p>
+            <p className="text-[#4a5568] text-sm mt-1">
+              {searchTerm ? 'Try a different keyword or clear the search' : 'Check back soon for new predictions'}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
