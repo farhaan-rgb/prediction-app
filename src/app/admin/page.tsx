@@ -123,15 +123,15 @@ export default function AdminPage() {
     fetchQuestions()
   }
 
-  const inputClass = "w-full bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-2.5 text-white placeholder-[#4a5568] focus:outline-none focus:border-indigo-500 text-sm"
+  const inputClass = "w-full bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-2.5 text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500 text-sm"
 
   if (!authed) {
     return (
       <main className="max-w-sm mx-auto px-4 py-16">
-        <div className="bg-[#0f1320] border border-[#1e2438] rounded-2xl p-8">
+        <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-2xl p-8">
           <div className="flex flex-col items-center mb-6">
-            <div className="w-14 h-14 bg-[#1a1f35] rounded-2xl flex items-center justify-center mb-3">
-              <Lock className="w-7 h-7 text-[#4a5568]" />
+            <div className="w-14 h-14 bg-[var(--c-border)] rounded-2xl flex items-center justify-center mb-3">
+              <Lock className="w-7 h-7 text-[var(--c-muted)]" />
             </div>
             <h1 className="text-xl font-bold text-white">Admin</h1>
           </div>
@@ -158,7 +158,7 @@ export default function AdminPage() {
       <h1 className="text-xl font-bold text-white">Admin Panel</h1>
 
       {/* Add Question */}
-      <section className="bg-[#0f1320] border border-[#1e2438] rounded-2xl p-5">
+      <section className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-2xl p-5">
         <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
           <PlusCircle className="w-4 h-4 text-indigo-400" /> Add Question
         </h2>
@@ -190,7 +190,7 @@ export default function AdminPage() {
       </section>
 
       {/* Resolve */}
-      <section className="bg-[#0f1320] border border-[#1e2438] rounded-2xl p-5">
+      <section className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-2xl p-5">
         <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 text-emerald-400" /> Resolve Questions
         </h2>
@@ -199,14 +199,14 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-2">
             {questions.map(q => (
-              <div key={q.id} className="border border-[#1e2438] rounded-xl overflow-hidden">
+              <div key={q.id} className="border border-[var(--c-border)] rounded-xl overflow-hidden">
                 <button
                   onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#141928]"
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[var(--c-card)]"
                 >
                   <div className="flex-1 min-w-0 mr-3">
                     <p className="text-sm font-medium text-white truncate">{q.title}</p>
-                    <p className="text-xs text-[#4a5568] mt-0.5">
+                    <p className="text-xs text-[var(--c-muted)] mt-0.5">
                       {q.status === 'resolved' ? '✓ Resolved' :
                         isPast(new Date(q.deadline)) ? '⚠ Expired — needs resolution' :
                         `Open · closes ${formatDistanceToNow(new Date(q.deadline), { addSuffix: true })}`}
@@ -214,21 +214,21 @@ export default function AdminPage() {
                   </div>
                   {q.status !== 'resolved' && (
                     expandedId === q.id
-                      ? <ChevronUp className="w-4 h-4 text-[#4a5568] flex-shrink-0" />
-                      : <ChevronDown className="w-4 h-4 text-[#4a5568] flex-shrink-0" />
+                      ? <ChevronUp className="w-4 h-4 text-[var(--c-muted)] flex-shrink-0" />
+                      : <ChevronDown className="w-4 h-4 text-[var(--c-muted)] flex-shrink-0" />
                   )}
                 </button>
 
                 {expandedId === q.id && q.status !== 'resolved' && (
-                  <div className="px-4 pb-4 pt-1 bg-[#080b14] border-t border-[#1e2438]">
-                    <p className="text-xs font-semibold text-[#8892aa] mb-2">Select correct answer:</p>
+                  <div className="px-4 pb-4 pt-1 bg-[var(--c-base)] border-t border-[var(--c-border)]">
+                    <p className="text-xs font-semibold text-[var(--c-secondary)] mb-2">Select correct answer:</p>
                     <div className="space-y-1.5">
                       {q.options.map((opt, i) => (
                         <button
                           key={i}
                           onClick={() => handleResolve(q, i)}
                           disabled={resolving === q.id}
-                          className="w-full text-left text-sm px-4 py-2.5 rounded-lg bg-[#0f1320] border border-[#1e2438] hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300 text-[#8892aa] transition-colors disabled:opacity-40"
+                          className="w-full text-left text-sm px-4 py-2.5 rounded-lg bg-[var(--c-card-alt)] border border-[var(--c-border)] hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300 text-[var(--c-secondary)] transition-colors disabled:opacity-40"
                         >
                           {opt}
                         </button>

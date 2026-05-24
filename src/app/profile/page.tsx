@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { PredictionWithQuestion } from '@/lib/types'
 import { useUser } from '@/context/UserContext'
+import { useTheme } from '@/context/ThemeContext'
 import UsernameModal from '@/components/UsernameModal'
-import { CheckCircle, XCircle, HelpCircle, LogOut, Snowflake } from 'lucide-react'
+import { CheckCircle, XCircle, HelpCircle, LogOut, Snowflake, Sun, Moon } from 'lucide-react'
 import { format, subDays, startOfDay, isSameDay } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
 
@@ -95,11 +96,11 @@ function StreakCalendar({ items }: { items: PredictionWithQuestion[] }) {
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all ${
               hasActivity
                 ? isToday
-                  ? 'bg-orange-500 text-white ring-2 ring-orange-400 ring-offset-1 ring-offset-[#0c0f1d]'
+                  ? 'bg-orange-500 text-white ring-2 ring-orange-400 ring-offset-1 ring-offset-[var(--c-card)]'
                   : 'bg-orange-500/80 text-white'
                 : isToday
-                  ? 'bg-[#1e2438] text-[#4a5568] ring-2 ring-[#2a3050] ring-offset-1 ring-offset-[#0c0f1d]'
-                  : 'bg-[#1e2438] text-[#2a3050]'
+                  ? 'bg-[var(--c-border)] text-[var(--c-muted)] ring-2 ring-[var(--c-border-muted)] ring-offset-1 ring-offset-[var(--c-card)]'
+                  : 'bg-[var(--c-border)] text-[var(--c-border-muted)]'
             }`}>
               {format(date, 'd')}
             </div>
@@ -109,11 +110,11 @@ function StreakCalendar({ items }: { items: PredictionWithQuestion[] }) {
       <div className="flex items-center gap-3 mt-2">
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-sm bg-orange-500" />
-          <span className="text-[10px] text-[#4a5568]">Active</span>
+          <span className="text-[10px] text-[var(--c-muted)]">Active</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-sm bg-[#1e2438]" />
-          <span className="text-[10px] text-[#4a5568]">Missed</span>
+          <div className="w-3 h-3 rounded-sm bg-[var(--c-border)]" />
+          <span className="text-[10px] text-[var(--c-muted)]">Missed</span>
         </div>
       </div>
     </div>
@@ -122,6 +123,7 @@ function StreakCalendar({ items }: { items: PredictionWithQuestion[] }) {
 
 export default function ProfilePage() {
   const { user, setUser } = useUser()
+  const { theme, toggle: toggleTheme } = useTheme()
   const [items, setItems] = useState<PredictionWithQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [avatar, setAvatar] = useState(() =>
@@ -208,17 +210,17 @@ export default function ProfilePage() {
           {/* Avatar — tap to toggle picker */}
           <button
             onClick={() => setShowAvatarPicker(v => !v)}
-            className="relative w-16 h-16 rounded-2xl bg-[#0c0f1d] border border-[#1e2438] flex items-center justify-center text-3xl flex-shrink-0 hover:border-indigo-500/40 transition-colors group"
+            className="relative w-16 h-16 rounded-2xl bg-[var(--c-card)] border border-[var(--c-border)] flex items-center justify-center text-3xl flex-shrink-0 hover:border-indigo-500/40 transition-colors group"
           >
             {avatar}
             <span className="absolute -bottom-1 -right-1 text-[10px] bg-indigo-600 rounded-full w-4 h-4 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">✎</span>
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-black text-white">@{user.username}</h1>
-            <p className="text-sm text-[#8892aa] mt-0.5">{getTitle(accuracy, totalPredictions)}</p>
+            <p className="text-sm text-[var(--c-secondary)] mt-0.5">{getTitle(accuracy, totalPredictions)}</p>
             <div className={`inline-flex items-center gap-1 mt-1 text-xs font-bold ${LEVEL_COLORS[level]}`}>
               <span>LVL {level}</span>
-              <span className="text-[#4a5568]">·</span>
+              <span className="text-[var(--c-muted)]">·</span>
               <span>{LEVEL_LABELS[level]}</span>
             </div>
           </div>
@@ -234,7 +236,7 @@ export default function ProfilePage() {
         {/* Avatar picker — only when open */}
         {showAvatarPicker && (
           <div className="mt-4 pt-4 border-t border-indigo-500/20">
-            <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-2">Choose Avatar</p>
+            <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider mb-2">Choose Avatar</p>
             <div className="flex gap-2 flex-wrap">
               {AVATARS.map(emoji => (
                 <button
@@ -243,7 +245,7 @@ export default function ProfilePage() {
                   className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
                     avatar === emoji
                       ? 'bg-indigo-600 border-2 border-indigo-400 scale-110'
-                      : 'bg-[#0c0f1d] border border-[#1e2438] hover:border-indigo-500/40 hover:scale-105'
+                      : 'bg-[var(--c-card)] border border-[var(--c-border)] hover:border-indigo-500/40 hover:scale-105'
                   }`}
                 >
                   {emoji}
@@ -255,13 +257,13 @@ export default function ProfilePage() {
       </div>
 
       {/* Daily streak card */}
-      <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4 mb-4">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-lg">🔥</span>
             <div>
-              <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider">Daily Streak</p>
-              <p className="text-2xl font-black text-orange-400 leading-none">{dailyStreak} <span className="text-sm font-semibold text-[#4a5568]">{dailyStreak === 1 ? 'day' : 'days'}</span></p>
+              <p className="text-xs font-bold text-[var(--c-muted)] uppercase tracking-wider">Daily Streak</p>
+              <p className="text-2xl font-black text-orange-400 leading-none">{dailyStreak} <span className="text-sm font-semibold text-[var(--c-muted)]">{dailyStreak === 1 ? 'day' : 'days'}</span></p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -282,8 +284,8 @@ export default function ProfilePage() {
         </div>
         {!loading && items.length === 0 ? (
           <div className="py-3 text-center">
-            <p className="text-sm font-semibold text-[#8892aa]">No streak yet.</p>
-            <p className="text-xs text-[#4a5568] mt-1">Make your first prediction today to start one.</p>
+            <p className="text-sm font-semibold text-[var(--c-secondary)]">No streak yet.</p>
+            <p className="text-xs text-[var(--c-muted)] mt-1">Make your first prediction today to start one.</p>
             <a href="/" className="inline-block mt-3 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
               Go predict →
             </a>
@@ -294,7 +296,7 @@ export default function ProfilePage() {
         {streakAtRisk && (
           <p className="text-[11px] text-amber-400 mt-2">⚠️ Predict today to keep your streak alive!</p>
         )}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1e2438]">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--c-border)]">
           <div className="flex items-center gap-1.5">
             <span className="text-sm">🎰</span>
             <span className="text-sm font-bold text-white">{chips} chips</span>
@@ -305,7 +307,7 @@ export default function ProfilePage() {
             className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
               chips >= FREEZE_COST
                 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
-                : 'bg-[#1e2438] border-[#2a3050] text-[#4a5568] cursor-not-allowed'
+                : 'bg-[var(--c-border)] border-[var(--c-border-muted)] text-[var(--c-muted)] cursor-not-allowed'
             }`}
           >
             <Snowflake className="w-3 h-3" />
@@ -315,22 +317,22 @@ export default function ProfilePage() {
       </div>
 
       {/* XP progress */}
-      <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4 mb-4">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className={`text-xs font-bold ${LEVEL_COLORS[level]}`}>Level {level} — {LEVEL_LABELS[level]}</span>
           {levelEnd !== Infinity
-            ? <span className="text-xs text-[#4a5568]">{totalPredictions - levelStart} / {levelEnd - levelStart} XP</span>
+            ? <span className="text-xs text-[var(--c-muted)]">{totalPredictions - levelStart} / {levelEnd - levelStart} XP</span>
             : <span className="text-xs text-amber-400">Max Level</span>
           }
         </div>
-        <div className="w-full h-2 bg-[#1e2438] rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-[var(--c-border)] rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-700"
             style={{ width: `${xpProgress}%` }}
           />
         </div>
         {levelEnd !== Infinity && (
-          <p className="text-[10px] text-[#4a5568] mt-1.5">
+          <p className="text-[10px] text-[var(--c-muted)] mt-1.5">
             {levelEnd - totalPredictions} more predictions to Level {level + 1} — {LEVEL_LABELS[level + 1]}
           </p>
         )}
@@ -338,43 +340,43 @@ export default function ProfilePage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4">
+        <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-base">🏆</span>
-            <span className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Win Streak</span>
+            <span className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider">Win Streak</span>
           </div>
-          <p className="text-2xl font-black text-amber-400">{winStreak} <span className="text-sm font-semibold text-[#4a5568]">{winStreak === 1 ? 'win' : 'wins'}</span></p>
+          <p className="text-2xl font-black text-amber-400">{winStreak} <span className="text-sm font-semibold text-[var(--c-muted)]">{winStreak === 1 ? 'win' : 'wins'}</span></p>
         </div>
-        <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4">
+        <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-base">🎯</span>
-            <span className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Predictions</span>
+            <span className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider">Predictions</span>
           </div>
           <p className="text-2xl font-black text-white">{totalPredictions}</p>
         </div>
-        <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4">
+        <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-base">📊</span>
-            <span className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Accuracy</span>
+            <span className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider">Accuracy</span>
           </div>
           <p className={`text-2xl font-black ${accuracy >= 70 ? 'text-emerald-400' : accuracy >= 50 ? 'text-amber-400' : 'text-white'}`}>
             {resolvedCount > 0 ? `${accuracy}%` : '—'}
           </p>
         </div>
-        <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4">
+        <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-base">🎰</span>
-            <span className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Chips</span>
+            <span className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider">Chips</span>
           </div>
           <p className="text-2xl font-black text-indigo-400">{chips}</p>
         </div>
       </div>
 
       {/* Prediction log */}
-      <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl overflow-hidden mb-4">
-        <div className="px-4 py-3 border-b border-[#1e2438] flex items-center justify-between">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl overflow-hidden mb-4">
+        <div className="px-4 py-3 border-b border-[var(--c-border)] flex items-center justify-between">
           <p className="text-sm font-bold text-white">Prediction Log</p>
-          <span className="text-xs text-[#4a5568]">{items.length} total</span>
+          <span className="text-xs text-[var(--c-muted)]">{items.length} total</span>
         </div>
         {loading ? (
           <div className="p-4 space-y-3">
@@ -383,8 +385,8 @@ export default function ProfilePage() {
         ) : items.length === 0 ? (
           <div className="py-10 text-center px-6">
             <p className="text-2xl mb-2">🎯</p>
-            <p className="text-sm font-semibold text-[#8892aa]">No predictions yet</p>
-            <p className="text-xs text-[#4a5568] mt-1 leading-relaxed">
+            <p className="text-sm font-semibold text-[var(--c-secondary)]">No predictions yet</p>
+            <p className="text-xs text-[var(--c-muted)] mt-1 leading-relaxed">
               Every pick you make shows up here — wins, losses, and everything in between.
             </p>
             <a
@@ -395,7 +397,7 @@ export default function ProfilePage() {
             </a>
           </div>
         ) : (
-          <div className="divide-y divide-[#1e2438]">
+          <div className="divide-y divide-[var(--c-border)]">
             {items.slice(0, 10).map(item => {
               const q = item.questions
               if (!q) return null
@@ -406,24 +408,24 @@ export default function ProfilePage() {
               return (
                 <div key={item.id} className="px-4 py-3 flex items-center gap-3">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    isCorrect ? 'bg-emerald-500/15' : isWrong ? 'bg-red-500/15' : 'bg-[#1e2438]'
+                    isCorrect ? 'bg-emerald-500/15' : isWrong ? 'bg-red-500/15' : 'bg-[var(--c-border)]'
                   }`}>
                     {isCorrect
                       ? <CheckCircle className="w-4 h-4 text-emerald-400" />
                       : isWrong
                       ? <XCircle className="w-4 h-4 text-red-400" />
-                      : <HelpCircle className="w-4 h-4 text-[#4a5568]" />
+                      : <HelpCircle className="w-4 h-4 text-[var(--c-muted)]" />
                     }
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{q.title}</p>
-                    <p className="text-[11px] text-[#4a5568] truncate mt-0.5">
+                    <p className="text-[11px] text-[var(--c-muted)] truncate mt-0.5">
                       Picked: {q.options[item.chosen_option]}
                       {isCorrect && <span className="text-emerald-400 ml-1">+10 pts</span>}
                       <span className="text-indigo-400 ml-1">+5 🎰</span>
                     </p>
                   </div>
-                  <span className="text-[10px] text-[#4a5568] flex-shrink-0">
+                  <span className="text-[10px] text-[var(--c-muted)] flex-shrink-0">
                     {format(new Date(item.created_at), 'MMM d')}
                   </span>
                 </div>
@@ -431,6 +433,20 @@ export default function ProfilePage() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Appearance */}
+      <div className="flex items-center justify-between bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl px-4 py-3.5 mb-3">
+        <div className="flex items-center gap-2.5">
+          {theme === 'dark' ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
+          <span className="text-sm font-semibold text-white">{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+        </div>
+        <button
+          onClick={toggleTheme}
+          className={`relative w-11 h-6 rounded-full transition-colors ${theme === 'light' ? 'bg-indigo-600' : 'bg-[var(--c-border)]'}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${theme === 'light' ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
       </div>
 
       {/* Logout */}

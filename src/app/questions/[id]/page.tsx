@@ -73,7 +73,7 @@ function MultiLineChart({ history, options, totalVotes }: ChartProps) {
 
   if (totalVotes === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-[#2a3050] text-sm">
+      <div className="flex items-center justify-center h-32 text-[var(--c-border-muted)] text-sm">
         Waiting for picks…
       </div>
     )
@@ -111,9 +111,9 @@ function MultiLineChart({ history, options, totalVotes }: ChartProps) {
           <line
             x1={PAD.left} y1={sy(v)}
             x2={W - PAD.right} y2={sy(v)}
-            stroke="#1e2438" strokeWidth="1" strokeDasharray="3 3"
+            stroke="var(--c-border)" strokeWidth="1" strokeDasharray="3 3"
           />
-          <text x={W - PAD.right + 5} y={sy(v) + 4} fontSize="9" fill="#4a5568">
+          <text x={W - PAD.right + 5} y={sy(v) + 4} fontSize="9" fill="var(--c-muted)">
             {v}%
           </text>
         </g>
@@ -156,7 +156,7 @@ function MultiLineChart({ history, options, totalVotes }: ChartProps) {
 
       {/* X-axis time labels */}
       {xLabels.map(({ i, label }) => (
-        <text key={i} x={sx(i)} y={H - 4} fontSize="9" fill="#4a5568" textAnchor="middle">
+        <text key={i} x={sx(i)} y={H - 4} fontSize="9" fill="var(--c-muted)" textAnchor="middle">
           {label}
         </text>
       ))}
@@ -168,7 +168,7 @@ function LiveCountdown({ deadline }: { deadline: string }) {
   const { hours, minutes, seconds, isExpired, urgency } = useCountdown(deadline)
   const pad = (n: number) => String(n).padStart(2, '0')
   const days = Math.floor(hours / 24); const h = hours % 24
-  if (isExpired) return <span className="text-[#4a5568] font-mono font-bold text-2xl">Closed</span>
+  if (isExpired) return <span className="text-[var(--c-muted)] font-mono font-bold text-2xl">Closed</span>
   const c = urgency === 'critical' ? 'text-red-400' : urgency === 'soon' ? 'text-amber-400' : 'text-emerald-400'
   return <span className={`font-mono font-bold text-2xl ${c}`}>{days >= 1 ? `${days}d ${h}h` : `${pad(h)}:${pad(minutes)}:${pad(seconds)}`}</span>
 }
@@ -225,7 +225,7 @@ export default function QuestionDetailPage() {
 
   if (!question) return (
     <main className="max-w-2xl mx-auto px-4 pt-16 text-center">
-      <p className="text-[#8892aa]">Question not found.</p>
+      <p className="text-[var(--c-secondary)]">Question not found.</p>
       <button onClick={() => router.push('/')} className="mt-4 text-indigo-400 text-sm">← Back</button>
     </main>
   )
@@ -241,11 +241,11 @@ export default function QuestionDetailPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 pt-4 pb-8">
-      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[#4a5568] hover:text-white transition-colors text-sm mb-5">
+      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-[var(--c-muted)] hover:text-white transition-colors text-sm mb-5">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-2xl overflow-hidden">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl overflow-hidden">
         <div className={`h-1 w-full bg-gradient-to-r ${league.gradient}`} />
 
         <div className="p-5">
@@ -253,7 +253,7 @@ export default function QuestionDetailPage() {
           <div className="flex items-center gap-2 flex-wrap mb-4">
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${league.bg} ${league.border} ${league.text}`}>{league.label}</span>
             {typeConfig && (
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1a1f35] border border-[#2a3050] text-[#8892aa]">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--c-border)] border border-[var(--c-border-muted)] text-[var(--c-secondary)]">
                 {typeConfig.icon} {typeConfig.label}
               </span>
             )}
@@ -268,15 +268,15 @@ export default function QuestionDetailPage() {
 
           {/* Countdown / participants */}
           {!isResolved && (
-            <div className="bg-[#080b14] rounded-xl p-4 mb-6 flex items-center justify-between">
+            <div className="bg-[var(--c-base)] rounded-xl p-4 mb-6 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-1">Closes in</p>
+                <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider mb-1">Closes in</p>
                 <LiveCountdown deadline={question.deadline} />
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-1">Participants</p>
+                <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider mb-1">Participants</p>
                 <div className="flex items-center gap-1.5 justify-end">
-                  <Users className="w-4 h-4 text-[#8892aa]" />
+                  <Users className="w-4 h-4 text-[var(--c-secondary)]" />
                   <span className="text-lg font-bold text-white">{totalVotes}</span>
                 </div>
               </div>
@@ -286,8 +286,8 @@ export default function QuestionDetailPage() {
           {/* ── Public Opinion ── */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider">Public Opinion</p>
-              {totalVotes > 0 && <p className="text-[10px] text-[#2a3050]">Last 6 hours · IST</p>}
+              <p className="text-xs font-bold text-[var(--c-muted)] uppercase tracking-wider">Public Opinion</p>
+              {totalVotes > 0 && <p className="text-[10px] text-[var(--c-border-muted)]">Last 6 hours · IST</p>}
             </div>
 
             {/* Legend */}
@@ -299,7 +299,7 @@ export default function QuestionDetailPage() {
                   return (
                     <div key={oi} className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                      <span className="text-xs text-[#8892aa] truncate max-w-[120px]">{option}</span>
+                      <span className="text-xs text-[var(--c-secondary)] truncate max-w-[120px]">{option}</span>
                       <span className="text-xs font-bold text-white">{pct}%</span>
                     </div>
                   )
@@ -308,12 +308,12 @@ export default function QuestionDetailPage() {
             )}
 
             {/* Shared multi-line chart */}
-            <div className="bg-[#080b14] rounded-xl px-3 pt-3 pb-1 mb-4">
+            <div className="bg-[var(--c-base)] rounded-xl px-3 pt-3 pb-1 mb-4">
               <MultiLineChart history={history} options={question.options} totalVotes={totalVotes} />
             </div>
 
             {/* Options table — Kalshi style */}
-            <div className="bg-[#080b14] rounded-xl overflow-hidden">
+            <div className="bg-[var(--c-base)] rounded-xl overflow-hidden">
               {question.options.map((option, oi) => {
                 const count = allPreds.filter(p => p.chosen_option === oi).length
                 const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
@@ -326,7 +326,7 @@ export default function QuestionDetailPage() {
                 return (
                   <div
                     key={oi}
-                    className={`flex items-center gap-3 px-4 py-3.5 border-b border-[#1a1f35] last:border-0 ${
+                    className={`flex items-center gap-3 px-4 py-3.5 border-b border-[var(--c-border)] last:border-0 ${
                       isCorrect ? 'bg-emerald-500/5' : isChosen && !isResolved ? 'bg-indigo-500/5' : ''
                     }`}
                   >
@@ -356,7 +356,7 @@ export default function QuestionDetailPage() {
                     </div>
 
                     {/* Picks */}
-                    <span className="text-xs text-[#4a5568] w-14 text-right flex-shrink-0">
+                    <span className="text-xs text-[var(--c-muted)] w-14 text-right flex-shrink-0">
                       {count} {count === 1 ? 'pick' : 'picks'}
                     </span>
 
@@ -390,7 +390,7 @@ export default function QuestionDetailPage() {
             </div>
           ) : prediction ? (
             <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-5">
-              <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider mb-1">Your pick</p>
+              <p className="text-xs font-bold text-[var(--c-muted)] uppercase tracking-wider mb-1">Your pick</p>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-indigo-400" />
                 <p className="text-white font-semibold">{question.options[prediction.chosen_option]}</p>
@@ -398,14 +398,14 @@ export default function QuestionDetailPage() {
             </div>
           ) : canPredict ? (
             <div className="mb-5">
-              <p className="text-xs font-bold text-[#4a5568] uppercase tracking-wider mb-3">Make your pick</p>
+              <p className="text-xs font-bold text-[var(--c-muted)] uppercase tracking-wider mb-3">Make your pick</p>
               <div className="space-y-2">
                 {question.options.map((option, oi) => (
                   <button
                     key={oi}
                     onClick={() => handlePredict(oi)}
                     disabled={submitting}
-                    className="w-full text-left px-4 py-3.5 rounded-xl border border-[#1e2438] bg-[#080b14] text-[#8892aa] hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-white transition-all text-sm font-medium disabled:opacity-40 flex items-center gap-3"
+                    className="w-full text-left px-4 py-3.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-base)] text-[var(--c-secondary)] hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-white transition-all text-sm font-medium disabled:opacity-40 flex items-center gap-3"
                   >
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: OPTION_COLORS[oi] ?? '#475569' }} />
                     {option}
@@ -419,11 +419,11 @@ export default function QuestionDetailPage() {
 
           {/* Context — bottom */}
           {question.context && (
-            <div className="bg-[#080b14] border border-[#1a1f35] rounded-xl p-4">
-              <p className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider mb-2">
+            <div className="bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl p-4">
+              <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase tracking-wider mb-2">
                 {typeConfig ? `${typeConfig.icon} ${typeConfig.label} — Context` : '📋 Context'}
               </p>
-              <p className="text-sm text-[#8892aa] leading-relaxed">{question.context}</p>
+              <p className="text-sm text-[var(--c-secondary)] leading-relaxed">{question.context}</p>
             </div>
           )}
         </div>

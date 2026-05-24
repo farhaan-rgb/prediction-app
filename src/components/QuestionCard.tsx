@@ -85,7 +85,7 @@ function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?:
 
   if (isExpired) {
     onExpired?.()
-    return <span className="text-xs font-semibold text-[#4a5568]">Closed</span>
+    return <span className="text-xs font-semibold text-[var(--c-muted)]">Closed</span>
   }
 
   const colorClass =
@@ -146,19 +146,19 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
       if (isCorrect && isChosen) return 'border-emerald-500/50 text-emerald-300 font-semibold'
       if (isCorrect) return 'border-emerald-500/30 text-emerald-400'
       if (isChosen) return 'border-red-500/30 text-red-400 line-through'
-      return 'border-[#1e2438] text-[#4a5568]'
+      return 'border-[var(--c-border)] text-[var(--c-muted)]'
     }
     if (isChosen) return 'border-indigo-500/50 text-indigo-300 font-semibold'
-    if (!canPredict) return 'border-[#1e2438] text-[#4a5568] cursor-default'
-    return 'border-[#1e2438] text-[#8892aa] hover:border-indigo-500/40 hover:text-white active:scale-[0.98] cursor-pointer'
+    if (!canPredict) return 'border-[var(--c-border)] text-[var(--c-muted)] cursor-default'
+    return 'border-[var(--c-border)] text-[var(--c-secondary)] hover:border-indigo-500/40 hover:text-white active:scale-[0.98] cursor-pointer'
   }
 
   return (
-    <div className="relative bg-[#0c0f1d] border border-[#1e2438] rounded-2xl overflow-hidden">
+    <div className="relative bg-[var(--c-card)] border border-[var(--c-border)] rounded-2xl overflow-hidden">
       {showEarnToast && (
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-[#0c0f1d] border border-indigo-500/30 px-3 py-1.5 rounded-full shadow-lg animate-fade-up">
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-[var(--c-card)] border border-indigo-500/30 px-3 py-1.5 rounded-full shadow-lg animate-fade-up">
           <span className="text-xs font-bold text-indigo-400">+5 🎰</span>
-          <span className="text-[#2a3050]">·</span>
+          <span className="text-[var(--c-border-muted)]">·</span>
           <span className="text-xs font-bold text-amber-400">+2 ⚡</span>
         </div>
       )}
@@ -203,12 +203,12 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
           <h3 className="text-[15px] font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">
             {question.title}
           </h3>
-          <ChevronRight className="w-4 h-4 text-[#2a3050] group-hover:text-indigo-400 flex-shrink-0 mt-0.5 transition-colors" />
+          <ChevronRight className="w-4 h-4 text-[var(--c-border-muted)] group-hover:text-indigo-400 flex-shrink-0 mt-0.5 transition-colors" />
         </Link>
 
         {/* Context snippet */}
         {question.context && (
-          <p className="text-xs text-[#4a5568] leading-relaxed mb-3 line-clamp-2">
+          <p className="text-xs text-[var(--c-muted)] leading-relaxed mb-3 line-clamp-2">
             {question.context}
           </p>
         )}
@@ -234,7 +234,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
                 key={index}
                 onClick={() => handlePredict(index)}
                 disabled={!canPredict || submitting}
-                className={`relative overflow-hidden w-full text-left px-3.5 py-2.5 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 bg-[#080b14] ${getOptionStyle(index)}`}
+                className={`relative overflow-hidden w-full text-left px-3.5 py-2.5 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 bg-[var(--c-base)] ${getOptionStyle(index)}`}
               >
                 {totalVotes > 0 && (
                   <div
@@ -259,8 +259,8 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1a1f35]">
-          <p className="text-xs text-[#4a5568]">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--c-border)]">
+          <p className="text-xs text-[var(--c-muted)]">
             {totalVotes > 0 ? `${totalVotes} ${totalVotes === 1 ? 'pick' : 'picks'} so far` : 'No picks yet'}
           </p>
           {canPredict && (
@@ -270,7 +270,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
             <p className="text-xs font-medium text-indigo-400">Sign in to predict →</p>
           )}
           {prediction && !isResolved && (
-            <p className="text-xs text-[#4a5568]">Prediction locked in</p>
+            <p className="text-xs text-[var(--c-muted)]">Prediction locked in</p>
           )}
         </div>
       </div>

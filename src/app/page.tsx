@@ -27,8 +27,8 @@ function FirstPickModal({ username, onClose }: { username: string; onClose: () =
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-sm bg-[#0f1320] border border-indigo-500/30 rounded-t-3xl sm:rounded-2xl px-8 pt-8 pb-10 overflow-hidden">
-        <div className="w-10 h-1 bg-[#2a3050] rounded-full mx-auto mb-6 sm:hidden" />
+      <div className="relative w-full sm:max-w-sm bg-[var(--c-card-alt)] border border-indigo-500/30 rounded-t-3xl sm:rounded-2xl px-8 pt-8 pb-10 overflow-hidden">
+        <div className="w-10 h-1 bg-[var(--c-border-muted)] rounded-full mx-auto mb-6 sm:hidden" />
 
         {/* Glow */}
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
@@ -36,23 +36,23 @@ function FirstPickModal({ username, onClose }: { username: string; onClose: () =
         <div className="relative text-center mb-6">
           <div className="text-5xl mb-3">🎯</div>
           <h2 className="text-xl font-black text-white uppercase tracking-wide">First pick locked.</h2>
-          <p className="text-sm text-[#8892aa] mt-1">You're officially in the game, @{username}.</p>
+          <p className="text-sm text-[var(--c-secondary)] mt-1">You're officially in the game, @{username}.</p>
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-6">
           <div className="flex flex-col items-center bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-5 py-3">
             <span className="text-2xl font-black text-indigo-400">+5</span>
-            <span className="text-xs text-[#4a5568] mt-0.5">🎰 chips</span>
+            <span className="text-xs text-[var(--c-muted)] mt-0.5">🎰 chips</span>
           </div>
-          <div className="text-[#2a3050] text-lg">·</div>
+          <div className="text-[var(--c-border-muted)] text-lg">·</div>
           <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-5 py-3">
             <span className="text-2xl font-black text-amber-400">+2</span>
-            <span className="text-xs text-[#4a5568] mt-0.5">⚡ points</span>
+            <span className="text-xs text-[var(--c-muted)] mt-0.5">⚡ points</span>
           </div>
         </div>
 
-        <div className="bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-3.5 mb-6 text-center">
-          <p className="text-xs text-[#8892aa] leading-relaxed">
+        <div className="bg-[var(--c-base)] border border-[var(--c-border)] rounded-xl px-4 py-3.5 mb-6 text-center">
+          <p className="text-xs text-[var(--c-secondary)] leading-relaxed">
             Come back <span className="text-white font-bold">tomorrow</span>. Predict daily, build your streak,
             and stack chips to unlock <span className="text-indigo-400 font-bold">exclusive markets</span>.
             The race to the top starts now.
@@ -90,9 +90,9 @@ function ContextualBanner({ bannerKey, onDismiss }: { bannerKey: BannerKey; onDi
       <span className="text-lg flex-shrink-0 mt-0.5">{config.icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white">{config.text}</p>
-        <p className="text-xs text-[#4a5568] mt-0.5">{config.sub}</p>
+        <p className="text-xs text-[var(--c-muted)] mt-0.5">{config.sub}</p>
       </div>
-      <button onClick={onDismiss} className="text-[#4a5568] hover:text-[#8892aa] flex-shrink-0 mt-0.5">
+      <button onClick={onDismiss} className="text-[var(--c-muted)] hover:text-[var(--c-secondary)] flex-shrink-0 mt-0.5">
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -234,18 +234,18 @@ export default function HomePage() {
 
         {/* Search bar */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4a5568] pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--c-muted)] pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search questions..."
-            className="w-full bg-[#0c0f1d] border border-[#1e2438] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-[#4a5568] focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="w-full bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4a5568] hover:text-[#8892aa] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--c-muted)] hover:text-[var(--c-secondary)] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -261,7 +261,7 @@ export default function HomePage() {
               className={`flex-shrink-0 flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full border transition-all whitespace-nowrap ${
                 filter === key
                   ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
-                  : 'bg-[#0c0f1d] border-[#1e2438] text-[#4a5568] hover:text-[#8892aa]'
+                  : 'bg-[var(--c-card)] border-[var(--c-border)] text-[var(--c-muted)] hover:text-[var(--c-secondary)]'
               }`}
             >
               <span>{icon}</span>
@@ -274,18 +274,18 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Flame className="w-4 h-4 text-orange-400" />
-            <span className="text-xs font-bold text-[#8892aa] uppercase tracking-wider">
+            <span className="text-xs font-bold text-[var(--c-secondary)] uppercase tracking-wider">
               Prediction Deck
             </span>
             {!loading && (
-              <span className="text-xs font-bold text-white bg-[#1e2438] px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-white bg-[var(--c-border)] px-2 py-0.5 rounded-full">
                 {visibleQuestions.length}
               </span>
             )}
           </div>
           <button
             onClick={fetchQuestions}
-            className="p-1.5 rounded-lg text-[#4a5568] hover:text-[#8892aa] hover:bg-[#1e2438] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--c-muted)] hover:text-[var(--c-secondary)] hover:bg-[var(--c-border)] transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -298,17 +298,17 @@ export default function HomePage() {
           </div>
         ) : visibleQuestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#0c0f1d] border border-[#1e2438] flex items-center justify-center mb-4 text-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--c-card)] border border-[var(--c-border)] flex items-center justify-center mb-4 text-2xl">
               {searchTerm ? '🔍' : user && Object.keys(predictions).length > 0 ? '✅' : '🏏'}
             </div>
-            <p className="text-[#8892aa] font-medium">
+            <p className="text-[var(--c-secondary)] font-medium">
               {searchTerm
                 ? `No questions matching "${search}"`
                 : user && Object.keys(predictions).length > 0
                 ? "You're all caught up!"
                 : 'No open questions right now'}
             </p>
-            <p className="text-[#4a5568] text-sm mt-1">
+            <p className="text-[var(--c-muted)] text-sm mt-1">
               {searchTerm
                 ? 'Try a different keyword or clear the search'
                 : user && Object.keys(predictions).length > 0

@@ -20,7 +20,7 @@ const LEAGUE_CONFIG: Record<string, { label: string; color: string }> = {
 
 function PendingBadge({ deadline }: { deadline: string }) {
   const { isExpired, hours, minutes } = useCountdown(deadline)
-  if (isExpired) return <span className="text-xs font-semibold text-[#8892aa]">Awaiting result</span>
+  if (isExpired) return <span className="text-xs font-semibold text-[var(--c-secondary)]">Awaiting result</span>
   return (
     <span className="text-xs font-semibold text-amber-400">
       Closes in {hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`}
@@ -37,7 +37,7 @@ function PredictionCard({ item }: { item: PredictionWithQuestion }) {
   const league = LEAGUE_CONFIG[q.category] ?? LEAGUE_CONFIG.current_events
 
   return (
-    <div className="bg-[#0f1320] border border-[#1e2438] rounded-xl p-4">
+    <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-xl p-4">
       {/* Top row */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -55,12 +55,12 @@ function PredictionCard({ item }: { item: PredictionWithQuestion }) {
             </span>
           )}
           {!isResolved && (
-            <span className="flex items-center gap-1 text-xs text-[#4a5568]">
+            <span className="flex items-center gap-1 text-xs text-[var(--c-muted)]">
               <HelpCircle className="w-3.5 h-3.5" /> Pending
             </span>
           )}
         </div>
-        <span className="text-[10px] text-[#4a5568] flex-shrink-0">
+        <span className="text-[10px] text-[var(--c-muted)] flex-shrink-0">
           {format(new Date(item.created_at), 'MMM d')}
         </span>
       </div>
@@ -70,7 +70,7 @@ function PredictionCard({ item }: { item: PredictionWithQuestion }) {
       <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm ${
         isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
         isWrong   ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                    'bg-[#080b14] border-[#1e2438] text-[#8892aa]'
+                    'bg-[var(--c-base)] border-[var(--c-border)] text-[var(--c-secondary)]'
       }`}>
         <span className="text-xs font-bold opacity-60">YOUR PICK</span>
         <span className="font-semibold truncate">{q.options[item.chosen_option]}</span>
@@ -133,7 +133,7 @@ export default function HistoryPage() {
         <div>
           <h1 className="text-xl font-bold text-white">My Predictions</h1>
           {items.length > 0 && (
-            <p className="text-xs text-[#8892aa] mt-0.5">
+            <p className="text-xs text-[var(--c-secondary)] mt-0.5">
               {items.length} total
               {results.length > 0 && ` · ${correct}/${results.length} correct`}
             </p>
@@ -144,19 +144,19 @@ export default function HistoryPage() {
       {/* Stats strip */}
       {results.length > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-5">
-          <div className="bg-[#0f1320] border border-[#1e2438] rounded-xl p-3 text-center">
+          <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-white">{items.length}</p>
-            <p className="text-[10px] text-[#4a5568] mt-0.5">Total Picks</p>
+            <p className="text-[10px] text-[var(--c-muted)] mt-0.5">Total Picks</p>
           </div>
-          <div className="bg-[#0f1320] border border-[#1e2438] rounded-xl p-3 text-center">
+          <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-emerald-400">{correct}</p>
-            <p className="text-[10px] text-[#4a5568] mt-0.5">Correct</p>
+            <p className="text-[10px] text-[var(--c-muted)] mt-0.5">Correct</p>
           </div>
-          <div className="bg-[#0f1320] border border-[#1e2438] rounded-xl p-3 text-center">
+          <div className="bg-[var(--c-card-alt)] border border-[var(--c-border)] rounded-xl p-3 text-center">
             <p className="text-xl font-bold text-amber-400">
               {Math.round((correct / results.length) * 100)}%
             </p>
-            <p className="text-[10px] text-[#4a5568] mt-0.5">Accuracy</p>
+            <p className="text-[10px] text-[var(--c-muted)] mt-0.5">Accuracy</p>
           </div>
         </div>
       )}
@@ -167,9 +167,9 @@ export default function HistoryPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-center">
-          <Clock className="w-12 h-12 text-[#2a3050] mb-3" />
-          <p className="text-[#8892aa] font-medium">No predictions yet</p>
-          <p className="text-[#4a5568] text-sm mt-1">Make your first pick on the Predict tab</p>
+          <Clock className="w-12 h-12 text-[var(--c-border-muted)] mb-3" />
+          <p className="text-[var(--c-secondary)] font-medium">No predictions yet</p>
+          <p className="text-[var(--c-muted)] text-sm mt-1">Make your first pick on the Predict tab</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -178,7 +178,7 @@ export default function HistoryPage() {
             <section>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-sm font-bold text-amber-400">⏳ Awaiting Outcome</span>
-                <span className="text-xs font-bold text-[#2a3050] bg-[#1e2438] px-2 py-0.5 rounded-full">{awaiting.length}</span>
+                <span className="text-xs font-bold text-[var(--c-border-muted)] bg-[var(--c-border)] px-2 py-0.5 rounded-full">{awaiting.length}</span>
               </div>
               <div className="space-y-3">
                 {awaiting.map(item => <PredictionCard key={item.id} item={item} />)}
@@ -190,8 +190,8 @@ export default function HistoryPage() {
           {results.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-[#8892aa]">✅ Results</span>
-                <span className="text-xs font-bold text-[#2a3050] bg-[#1e2438] px-2 py-0.5 rounded-full">{results.length}</span>
+                <span className="text-sm font-bold text-[var(--c-secondary)]">✅ Results</span>
+                <span className="text-xs font-bold text-[var(--c-border-muted)] bg-[var(--c-border)] px-2 py-0.5 rounded-full">{results.length}</span>
               </div>
               <div className="space-y-3">
                 {results.map(item => <PredictionCard key={item.id} item={item} />)}

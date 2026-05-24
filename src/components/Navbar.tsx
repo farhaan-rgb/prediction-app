@@ -19,7 +19,7 @@ export default function Navbar() {
   return (
     <>
       {/* Top bar */}
-      <header className="sticky top-0 z-40 bg-[#080b14]/90 backdrop-blur-md border-b border-[#1e2438]">
+      <header className="sticky top-0 z-40 bg-[var(--c-nav-header)] backdrop-blur-md border-b border-[var(--c-border)]">
         <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
@@ -44,7 +44,7 @@ export default function Navbar() {
       </header>
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#080b14]/95 backdrop-blur-md border-t border-[#1e2438]">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-nav-bar)] backdrop-blur-md border-t border-[var(--c-border)]">
         <div className="max-w-2xl mx-auto flex">
           {tabs.map(({ href, icon: Icon, label }) => {
             const active = pathname === href
@@ -55,10 +55,10 @@ export default function Navbar() {
                 className="relative flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors"
               >
                 <Icon
-                  className={`w-5 h-5 transition-colors ${active ? 'text-indigo-400' : 'text-[#4a5568]'}`}
+                  className={`w-5 h-5 transition-colors ${active ? 'text-indigo-400' : 'text-[var(--c-muted)]'}`}
                   strokeWidth={active ? 2.5 : 2}
                 />
-                <span className={`text-[10px] font-semibold tracking-wide transition-colors ${active ? 'text-indigo-400' : 'text-[#4a5568]'}`}>
+                <span className={`text-[10px] font-semibold tracking-wide transition-colors ${active ? 'text-indigo-400' : 'text-[var(--c-muted)]'}`}>
                   {label}
                 </span>
                 {active && (

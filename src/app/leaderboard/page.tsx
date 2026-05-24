@@ -133,7 +133,7 @@ export default function LeaderboardPage() {
           <div>
             <p className="text-[10px] font-bold text-amber-500/70 uppercase tracking-widest mb-1">Tournament Standing</p>
             <h1 className="text-2xl font-black text-white">IPL Oracle</h1>
-            <p className="text-sm text-[#8892aa] mt-1 max-w-xs">
+            <p className="text-sm text-[var(--c-secondary)] mt-1 max-w-xs">
               Forecast IPL matches, climb the ranks, claim bragging rights.
             </p>
           </div>
@@ -141,21 +141,21 @@ export default function LeaderboardPage() {
         </div>
         {currentUser && currentUserRank > 0 && (
           <div className="mt-3 inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
-            <span className="text-xs text-[#8892aa]">Your rank</span>
+            <span className="text-xs text-[var(--c-secondary)]">Your rank</span>
             <span className="text-sm font-black text-white">#{currentUserRank}</span>
           </div>
         )}
       </div>
 
       {/* Daily check-in */}
-      <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4 mb-4 flex items-center justify-between gap-3">
+      <div className="bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-4 mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-xl">
             ⚡
           </div>
           <div>
             <p className="text-sm font-bold text-white">Daily Check-In</p>
-            <p className="text-xs text-[#4a5568] mt-0.5">Keep your streak alive</p>
+            <p className="text-xs text-[var(--c-muted)] mt-0.5">Keep your streak alive</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -170,7 +170,7 @@ export default function LeaderboardPage() {
             disabled={streakClaimed}
             className={`text-sm font-bold px-4 py-2 rounded-xl transition-all ${
               streakClaimed
-                ? 'bg-[#1e2438] text-[#4a5568] cursor-default'
+                ? 'bg-[var(--c-border)] text-[var(--c-muted)] cursor-default'
                 : 'bg-amber-500 text-black hover:bg-amber-400 active:scale-95'
             }`}
           >
@@ -180,7 +180,7 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Sort tabs */}
-      <div className="flex items-center gap-1 bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-1 mb-4">
+      <div className="flex items-center gap-1 bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl p-1 mb-4">
         {(['points', 'wins', 'accuracy'] as SortMode[]).map(mode => (
           <button
             key={mode}
@@ -188,7 +188,7 @@ export default function LeaderboardPage() {
             className={`flex-1 text-xs font-bold py-2 rounded-lg capitalize transition-all ${
               sortMode === mode
                 ? 'bg-indigo-600 text-white'
-                : 'text-[#4a5568] hover:text-[#8892aa]'
+                : 'text-[var(--c-muted)] hover:text-[var(--c-secondary)]'
             }`}
           >
             {mode === 'points' ? 'Rating' : mode === 'wins' ? 'Wins' : 'Accuracy'}
@@ -198,13 +198,13 @@ export default function LeaderboardPage() {
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4a5568]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--c-muted)]" />
         <input
           type="text"
           placeholder="Search forecasters..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full bg-[#0c0f1d] border border-[#1e2438] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-[#4a5568] focus:outline-none focus:border-indigo-500/50"
+          className="w-full bg-[var(--c-card)] border border-[var(--c-border)] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-[var(--c-muted)] focus:outline-none focus:border-indigo-500/50"
         />
       </div>
 
@@ -215,8 +215,8 @@ export default function LeaderboardPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center">
-          <Trophy className="w-12 h-12 text-[#2a3050] mb-3" />
-          <p className="text-[#8892aa]">{search ? 'No forecasters found' : 'No scores yet — be the first!'}</p>
+          <Trophy className="w-12 h-12 text-[var(--c-border-muted)] mb-3" />
+          <p className="text-[var(--c-secondary)]">{search ? 'No forecasters found' : 'No scores yet — be the first!'}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -233,15 +233,15 @@ export default function LeaderboardPage() {
                 key={u.id}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
                   isCurrentUser ? 'bg-indigo-500/10 border-indigo-500/30' :
-                  isTop3 ? 'bg-[#0c0f1d] border-[#2a3050]' :
-                  'bg-[#0c0f1d] border-[#1e2438]'
+                  isTop3 ? 'bg-[var(--c-card)] border-[var(--c-border-muted)]' :
+                  'bg-[var(--c-card)] border-[var(--c-border)]'
                 }`}
               >
                 {/* Rank */}
                 <div className="w-6 flex-shrink-0 flex items-center justify-center">
                   {medal
                     ? <span className="text-base">{medal}</span>
-                    : <span className="text-sm font-bold text-[#4a5568]">{rank}</span>
+                    : <span className="text-sm font-bold text-[var(--c-muted)]">{rank}</span>
                   }
                 </div>
 
@@ -266,8 +266,8 @@ export default function LeaderboardPage() {
                     </span>
                     {(u.total_predictions ?? 0) > 0 && (
                       <>
-                        <span className="text-[#2a3050]">·</span>
-                        <span className="text-[10px] text-[#4a5568]">{u.total_predictions} picks</span>
+                        <span className="text-[var(--c-border-muted)]">·</span>
+                        <span className="text-[10px] text-[var(--c-muted)]">{u.total_predictions} picks</span>
                       </>
                     )}
                   </div>
@@ -278,7 +278,7 @@ export default function LeaderboardPage() {
                   <p className="text-base font-black text-amber-400">
                     {primaryStat}{sortMode === 'accuracy' ? '%' : ''}
                   </p>
-                  <p className="text-[10px] text-[#4a5568]">{primaryLabel}</p>
+                  <p className="text-[10px] text-[var(--c-muted)]">{primaryLabel}</p>
                 </div>
               </div>
             )
