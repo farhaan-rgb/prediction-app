@@ -29,9 +29,15 @@ export default function Navbar() {
           </Link>
 
           {user && (
-            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
-              <span className="text-amber-400 text-xs">⚡</span>
-              <span className="text-xs font-bold text-amber-400">{user.total_points} pts</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full">
+                <span className="text-xs">🎰</span>
+                <span className="text-xs font-bold text-indigo-400">{user.chips ?? 0}</span>
+              </div>
+              <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                <span className="text-amber-400 text-xs">⚡</span>
+                <span className="text-xs font-bold text-amber-400">{user.total_points}</span>
+              </div>
             </div>
           )}
         </div>

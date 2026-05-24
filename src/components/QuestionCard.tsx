@@ -108,6 +108,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
   const { isExpired } = useCountdown(question.deadline)
   const [submitting, setSubmitting] = useState(false)
   const [localExpired, setLocalExpired] = useState(false)
+  const [showEarnToast, setShowEarnToast] = useState(false)
 
   const league = LEAGUE_CONFIG[question.category] ?? LEAGUE_CONFIG.current_events
   const isResolved = question.status === 'resolved'
@@ -131,6 +132,8 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
       const newChips = (user.chips ?? 0) + 5
       await sb.from('users').update({ total_points: newPoints, chips: newChips }).eq('id', user.id)
       setUser({ ...user, total_points: newPoints, chips: newChips })
+      setShowEarnToast(true)
+      setTimeout(() => setShowEarnToast(false), 2000)
     }
     setSubmitting(false)
   }
@@ -151,7 +154,14 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
   }
 
   return (
-    <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-2xl overflow-hidden">
+    <div className="relative bg-[#0c0f1d] border border-[#1e2438] rounded-2xl overflow-hidden">
+      {showEarnToast && (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-[#0c0f1d] border border-indigo-500/30 px-3 py-1.5 rounded-full shadow-lg animate-fade-up">
+          <span className="text-xs font-bold text-indigo-400">+5 🎰</span>
+          <span className="text-[#2a3050]">·</span>
+          <span className="text-xs font-bold text-amber-400">+2 ⚡</span>
+        </div>
+      )}
       {/* Top accent bar */}
       <div className={`h-0.5 w-full bg-gradient-to-r ${league.gradient}`} />
 
