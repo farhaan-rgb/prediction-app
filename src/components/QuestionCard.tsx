@@ -113,7 +113,7 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
   const canPredict = user && !prediction && !isExpired && !localExpired && question.status === 'open'
   const wonPoints = isResolved && prediction && prediction.chosen_option === question.correct_option
   const totalVotes = Object.values(distribution ?? {}).reduce((a, b) => a + b, 0)
-  const isHot = totalVotes >= 6
+  const isHot = totalVotes >= 20
 
   const handlePredict = async (optionIndex: number) => {
     if (!canPredict) return
