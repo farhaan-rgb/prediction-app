@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Question, Prediction } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/context/UserContext'
+import { supabase as sb } from '@/lib/supabase'
 import { useCountdown } from '@/hooks/useCountdown'
 import { CheckCircle, XCircle, Zap, ChevronRight, Flame } from 'lucide-react'
 
@@ -103,7 +104,7 @@ function CountdownBadge({ deadline, onExpired }: { deadline: string; onExpired?:
 }
 
 export default function QuestionCard({ question, prediction, onPredicted, onExpired, distribution }: Props) {
-  const { user } = useUser()
+  const { user, setUser } = useUser()
   const { isExpired } = useCountdown(question.deadline)
   const [submitting, setSubmitting] = useState(false)
   const [localExpired, setLocalExpired] = useState(false)
@@ -123,7 +124,13 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
       .insert({ user_id: user.id, question_id: question.id, chosen_option: optionIndex })
       .select()
       .single()
-    if (!error && data) onPredicted(data)
+    if (!error && data) {
+      onPredicted(data)
+      // Award +2 points for participating
+      const newPoints = (user.total_points ?? 0) + 2
+      await sb.from('users').update({ total_points: newPoints }).eq('id', user.id)
+      setUser({ ...user, total_points: newPoints })
+    }
     setSubmitting(false)
   }
 

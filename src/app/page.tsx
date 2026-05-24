@@ -104,34 +104,11 @@ export default function HomePage() {
     ? questions
     : questions.filter(q => q.category === filter)
 
-  const pendingCount = questions.filter(q => !predictions[q.id]).length
-
   return (
     <>
       {!userLoading && !user && <UsernameModal />}
 
       <main className="max-w-2xl mx-auto px-4 pt-4 pb-4">
-
-        {/* User hero strip */}
-        {user && (
-          <div className="bg-gradient-to-r from-indigo-600/15 to-purple-600/15 border border-indigo-500/20 rounded-2xl p-4 mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-white font-bold">@{user.username}</p>
-              <p className="text-[#8892aa] text-xs mt-0.5">
-                {pendingCount > 0
-                  ? `${pendingCount} prediction${pendingCount > 1 ? 's' : ''} awaiting your call`
-                  : '✓ All caught up!'}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-xl">
-              <span className="text-lg">⚡</span>
-              <div>
-                <p className="text-amber-400 font-bold text-lg leading-none">{user.total_points}</p>
-                <p className="text-amber-600 text-[10px]">pts</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Filter tabs — horizontally scrollable */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide pb-0.5 -mx-4 px-4">

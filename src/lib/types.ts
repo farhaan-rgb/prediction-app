@@ -7,6 +7,7 @@ export interface User {
   total_points: number
   total_predictions: number
   correct_predictions: number
+  streak_freezes: number
   created_at: string
 }
 
