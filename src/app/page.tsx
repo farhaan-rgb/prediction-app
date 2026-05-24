@@ -214,6 +214,7 @@ export default function HomePage() {
 
   const searchTerm = search.trim().toLowerCase()
   const visibleQuestions = questions
+    .filter(q => !user || !predictions[q.id])
     .filter(q => filter === 'all' || q.category === filter)
     .filter(q => !searchTerm || q.title.toLowerCase().includes(searchTerm))
 
@@ -298,13 +299,21 @@ export default function HomePage() {
         ) : visibleQuestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-2xl bg-[#0c0f1d] border border-[#1e2438] flex items-center justify-center mb-4 text-2xl">
-              {searchTerm ? '🔍' : '🏏'}
+              {searchTerm ? '🔍' : user && Object.keys(predictions).length > 0 ? '✅' : '🏏'}
             </div>
             <p className="text-[#8892aa] font-medium">
-              {searchTerm ? `No questions matching "${search}"` : 'No open questions right now'}
+              {searchTerm
+                ? `No questions matching "${search}"`
+                : user && Object.keys(predictions).length > 0
+                ? "You're all caught up!"
+                : 'No open questions right now'}
             </p>
             <p className="text-[#4a5568] text-sm mt-1">
-              {searchTerm ? 'Try a different keyword or clear the search' : 'Check back soon for new predictions'}
+              {searchTerm
+                ? 'Try a different keyword or clear the search'
+                : user && Object.keys(predictions).length > 0
+                ? 'New questions drop daily — check back tomorrow'
+                : 'Check back soon for new predictions'}
             </p>
           </div>
         ) : (

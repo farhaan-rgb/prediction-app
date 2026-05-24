@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/context/UserContext'
 import { User } from '@/lib/types'
@@ -10,6 +11,8 @@ type Step = 'enter' | 'welcome'
 
 export default function UsernameModal() {
   const { setUser } = useUser()
+  const router = useRouter()
+  const pathname = usePathname()
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,9 +31,10 @@ export default function UsernameModal() {
       .from('users').select('*').eq('username', trimmed).single()
 
     if (existing) {
-      // Returning user — skip welcome
+      // Returning user — skip welcome, redirect to home if not already there
       setUser(existing)
       setLoading(false)
+      if (pathname !== '/') router.push('/')
       return
     }
 
@@ -53,6 +57,7 @@ export default function UsernameModal() {
     if (!pendingUser) return
     localStorage.setItem('predictit_onboarded', '1')
     setUser(pendingUser)
+    router.push('/')
   }
 
   if (step === 'welcome' && pendingUser) {
@@ -72,28 +77,17 @@ export default function UsernameModal() {
             </h2>
             <p className="text-center text-xs text-[#4a5568] mb-6">Here's how this works.</p>
 
-            <div className="space-y-2.5 mb-7">
-              <div className="flex items-start gap-3.5 bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-3.5">
-                <span className="text-2xl flex-shrink-0">🔮</span>
-                <div>
-                  <p className="text-sm font-bold text-white">Call the outcome</p>
-                  <p className="text-xs text-[#4a5568] leading-relaxed mt-0.5">Sports, markets, news — tap your pick before the deadline. No money, just glory.</p>
+            <div className="space-y-2 mb-7">
+              {[
+                { icon: '🔮', text: 'Pick outcomes on sports, markets & news' },
+                { icon: '⚡', text: 'Right calls earn points — top the leaderboard' },
+                { icon: '🎰', text: 'Every pick earns chips — unlock exclusive markets' },
+              ].map(({ icon, text }) => (
+                <div key={icon} className="flex items-center gap-3.5 bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-3.5">
+                  <span className="text-2xl flex-shrink-0">{icon}</span>
+                  <p className="text-sm font-semibold text-white leading-snug">{text}</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3.5 bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-3.5">
-                <span className="text-2xl flex-shrink-0">⚡</span>
-                <div>
-                  <p className="text-sm font-bold text-white">Stack points. Top the board.</p>
-                  <p className="text-xs text-[#4a5568] leading-relaxed mt-0.5">Right calls earn points. The leaderboard is public. You want to be on it.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3.5 bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-3.5">
-                <span className="text-2xl flex-shrink-0">🎰</span>
-                <div>
-                  <p className="text-sm font-bold text-white">Earn chips. Unlock access.</p>
-                  <p className="text-xs text-[#4a5568] leading-relaxed mt-0.5">Every pick earns chips. Spend them on exclusive markets, private leagues, and early access drops.</p>
-                </div>
-              </div>
+              ))}
             </div>
 
             <button
