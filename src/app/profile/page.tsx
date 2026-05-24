@@ -129,6 +129,9 @@ export default function ProfilePage() {
   )
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [usingFreeze, setUsingFreeze] = useState(false)
+  const [buyingFreeze, setBuyingFreeze] = useState(false)
+
+  const FREEZE_COST = 50
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -159,6 +162,16 @@ export default function ProfilePage() {
     setUsingFreeze(false)
   }
 
+  const handleBuyFreeze = async () => {
+    if (!user || (user.chips ?? 0) < FREEZE_COST) return
+    setBuyingFreeze(true)
+    const newChips = (user.chips ?? 0) - FREEZE_COST
+    const newFreezes = (user.streak_freezes ?? 0) + 1
+    await supabase.from('users').update({ chips: newChips, streak_freezes: newFreezes }).eq('id', user.id)
+    setUser({ ...user, chips: newChips, streak_freezes: newFreezes })
+    setBuyingFreeze(false)
+  }
+
   if (!user) return (
     <>
       <UsernameModal />
@@ -177,6 +190,7 @@ export default function ProfilePage() {
   const winStreak = computeWinStreak(items)
   const dailyStreak = computeDailyStreak(items)
   const freezes = user.streak_freezes ?? 0
+  const chips = user.chips ?? 0
 
   // Streak at risk = no prediction today, last was yesterday or earlier
   const now = toZonedTime(new Date(), TZ)
@@ -251,13 +265,11 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {freezes > 0 && (
-              <div className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded-lg">
-                <Snowflake className="w-3 h-3 text-cyan-400" />
-                <span className="text-xs font-bold text-cyan-400">{freezes}</span>
-              </div>
-            )}
-            {streakAtRisk && (
+            <div className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded-lg">
+              <Snowflake className="w-3 h-3 text-cyan-400" />
+              <span className="text-xs font-bold text-cyan-400">{freezes}</span>
+            </div>
+            {streakAtRisk && freezes > 0 && (
               <button
                 onClick={handleUseFreeze}
                 disabled={usingFreeze}
@@ -272,6 +284,24 @@ export default function ProfilePage() {
         {streakAtRisk && (
           <p className="text-[11px] text-amber-400 mt-2">⚠️ Predict today to keep your streak alive!</p>
         )}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#1e2438]">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">🎰</span>
+            <span className="text-sm font-bold text-white">{chips} chips</span>
+          </div>
+          <button
+            onClick={handleBuyFreeze}
+            disabled={buyingFreeze || chips < FREEZE_COST}
+            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+              chips >= FREEZE_COST
+                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
+                : 'bg-[#1e2438] border-[#2a3050] text-[#4a5568] cursor-not-allowed'
+            }`}
+          >
+            <Snowflake className="w-3 h-3" />
+            {buyingFreeze ? 'Buying...' : `Buy Freeze — ${FREEZE_COST} 🎰`}
+          </button>
+        </div>
       </div>
 
       {/* XP progress */}
@@ -323,10 +353,10 @@ export default function ProfilePage() {
         </div>
         <div className="bg-[#0c0f1d] border border-[#1e2438] rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-base">❄️</span>
-            <span className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Freezes Left</span>
+            <span className="text-base">🎰</span>
+            <span className="text-[10px] font-bold text-[#4a5568] uppercase tracking-wider">Chips</span>
           </div>
-          <p className="text-2xl font-black text-cyan-400">{freezes}</p>
+          <p className="text-2xl font-black text-indigo-400">{chips}</p>
         </div>
       </div>
 
@@ -370,6 +400,7 @@ export default function ProfilePage() {
                     <p className="text-[11px] text-[#4a5568] truncate mt-0.5">
                       Picked: {q.options[item.chosen_option]}
                       {isCorrect && <span className="text-emerald-400 ml-1">+10 pts</span>}
+                      <span className="text-indigo-400 ml-1">+5 🎰</span>
                     </p>
                   </div>
                   <span className="text-[10px] text-[#4a5568] flex-shrink-0">

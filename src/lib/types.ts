@@ -8,6 +8,7 @@ export interface User {
   total_predictions: number
   correct_predictions: number
   streak_freezes: number
+  chips: number
   created_at: string
 }
 

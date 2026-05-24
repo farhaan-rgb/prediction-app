@@ -126,10 +126,11 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
       .single()
     if (!error && data) {
       onPredicted(data)
-      // Award +2 points for participating
+      // Award +2 points (leaderboard) + +5 chips (economy) for participating
       const newPoints = (user.total_points ?? 0) + 2
-      await sb.from('users').update({ total_points: newPoints }).eq('id', user.id)
-      setUser({ ...user, total_points: newPoints })
+      const newChips = (user.chips ?? 0) + 5
+      await sb.from('users').update({ total_points: newPoints, chips: newChips }).eq('id', user.id)
+      setUser({ ...user, total_points: newPoints, chips: newChips })
     }
     setSubmitting(false)
   }
