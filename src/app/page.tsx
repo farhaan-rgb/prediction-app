@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Question, Prediction } from '@/lib/types'
 import { useUser } from '@/context/UserContext'
 import QuestionCard from '@/components/QuestionCard'
 import UsernameModal from '@/components/UsernameModal'
 import { isPast } from 'date-fns'
-import { Flame, RefreshCw, Search, X } from 'lucide-react'
+import { Flame, RefreshCw, Search, X, Zap } from 'lucide-react'
 
 type LeagueFilter = 'all' | 'ipl' | 'nba' | 'current_events' | 'stocks' | 'crypto' | 'movies'
 
@@ -21,6 +21,84 @@ const FILTER_TABS: { key: LeagueFilter; label: string; icon: string }[] = [
   { key: 'current_events', label: 'Current Affairs', icon: '📰' },
 ]
 
+type BannerKey = 'chips_50' | 'streak_3'
+
+function FirstPickModal({ username, onClose }: { username: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-sm bg-[#0f1320] border border-indigo-500/30 rounded-t-3xl sm:rounded-2xl px-8 pt-8 pb-10 overflow-hidden">
+        <div className="w-10 h-1 bg-[#2a3050] rounded-full mx-auto mb-6 sm:hidden" />
+
+        {/* Glow */}
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative text-center mb-6">
+          <div className="text-5xl mb-3">🎯</div>
+          <h2 className="text-xl font-black text-white uppercase tracking-wide">First pick locked.</h2>
+          <p className="text-sm text-[#8892aa] mt-1">You're officially in the game, @{username}.</p>
+        </div>
+
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <div className="flex flex-col items-center bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-5 py-3">
+            <span className="text-2xl font-black text-indigo-400">+5</span>
+            <span className="text-xs text-[#4a5568] mt-0.5">🎰 chips</span>
+          </div>
+          <div className="text-[#2a3050] text-lg">·</div>
+          <div className="flex flex-col items-center bg-amber-500/10 border border-amber-500/20 rounded-xl px-5 py-3">
+            <span className="text-2xl font-black text-amber-400">+2</span>
+            <span className="text-xs text-[#4a5568] mt-0.5">⚡ points</span>
+          </div>
+        </div>
+
+        <div className="bg-[#080b14] border border-[#1e2438] rounded-xl px-4 py-3.5 mb-6 text-center">
+          <p className="text-xs text-[#8892aa] leading-relaxed">
+            Come back <span className="text-white font-bold">tomorrow</span>. Predict daily, build your streak,
+            and stack chips to unlock <span className="text-indigo-400 font-bold">exclusive markets</span>.
+            The race to the top starts now.
+          </p>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-base shadow-lg shadow-indigo-900/40"
+        >
+          <Zap className="w-4 h-4" />
+          Let's go 🔥
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ContextualBanner({ bannerKey, onDismiss }: { bannerKey: BannerKey; onDismiss: () => void }) {
+  const config = {
+    chips_50: {
+      icon: '🎰',
+      text: '50 chips stacked. Exclusive markets are unlocking soon.',
+      sub: 'Keep predicting to earn more.',
+    },
+    streak_3: {
+      icon: '🔥',
+      text: "3 picks in. Come back tomorrow to start a streak.",
+      sub: 'Daily streaks compound your chips earnings.',
+    },
+  }[bannerKey]
+
+  return (
+    <div className="flex items-start gap-3 bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-4 py-3 mb-3 animate-fade-up">
+      <span className="text-lg flex-shrink-0 mt-0.5">{config.icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white">{config.text}</p>
+        <p className="text-xs text-[#4a5568] mt-0.5">{config.sub}</p>
+      </div>
+      <button onClick={onDismiss} className="text-[#4a5568] hover:text-[#8892aa] flex-shrink-0 mt-0.5">
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
+
 export default function HomePage() {
   const { user, loading: userLoading } = useUser()
   const [questions, setQuestions] = useState<Question[]>([])
@@ -29,6 +107,13 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<LeagueFilter>('all')
   const [search, setSearch] = useState('')
+  const [showFirstPickModal, setShowFirstPickModal] = useState(false)
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(() =>
+    typeof window !== 'undefined'
+      ? new Set(['chips_50', 'streak_3'].filter(k => localStorage.getItem(`seen_banner_${k}`)))
+      : new Set()
+  )
+  const isFirstPrediction = useRef(true)
 
   useEffect(() => { fetchQuestions() }, [])
 
@@ -89,7 +174,16 @@ export default function HomePage() {
   }
 
   const handlePredicted = (prediction: Prediction) => {
-    setPredictions(prev => ({ ...prev, [prediction.question_id]: prediction }))
+    setPredictions(prev => {
+      const updated = { ...prev, [prediction.question_id]: prediction }
+      // First-ever prediction
+      if (isFirstPrediction.current && Object.keys(prev).length === 0 && !localStorage.getItem('seen_first_pick')) {
+        localStorage.setItem('seen_first_pick', '1')
+        setShowFirstPickModal(true)
+      }
+      isFirstPrediction.current = false
+      return updated
+    })
     setDistribution(prev => {
       const qDist = { ...(prev[prediction.question_id] ?? {}) }
       qDist[prediction.chosen_option] = (qDist[prediction.chosen_option] ?? 0) + 1
@@ -101,6 +195,23 @@ export default function HomePage() {
     setQuestions(prev => prev.filter(q => q.id !== questionId))
   }
 
+  // Once existing predictions load, the next prediction is no longer "first"
+  useEffect(() => {
+    if (Object.keys(predictions).length > 0) isFirstPrediction.current = false
+  }, [predictions])
+
+  const dismissBanner = (key: string) => {
+    localStorage.setItem(`seen_banner_${key}`, '1')
+    setDismissedBanners(prev => new Set([...prev, key]))
+  }
+
+  const activeBanner = useMemo((): BannerKey | null => {
+    if (!user) return null
+    if ((user.chips ?? 0) >= 50 && !dismissedBanners.has('chips_50')) return 'chips_50'
+    if (Object.keys(predictions).length >= 3 && !dismissedBanners.has('streak_3')) return 'streak_3'
+    return null
+  }, [user, predictions, dismissedBanners])
+
   const searchTerm = search.trim().toLowerCase()
   const visibleQuestions = questions
     .filter(q => filter === 'all' || q.category === filter)
@@ -109,8 +220,16 @@ export default function HomePage() {
   return (
     <>
       {!userLoading && !user && <UsernameModal />}
+      {showFirstPickModal && user && (
+        <FirstPickModal username={user.username} onClose={() => setShowFirstPickModal(false)} />
+      )}
 
       <main className="max-w-2xl mx-auto px-4 pt-4 pb-4">
+
+        {/* Contextual banner — one at a time */}
+        {activeBanner && (
+          <ContextualBanner bannerKey={activeBanner} onDismiss={() => dismissBanner(activeBanner)} />
+        )}
 
         {/* Search bar */}
         <div className="relative mb-3">

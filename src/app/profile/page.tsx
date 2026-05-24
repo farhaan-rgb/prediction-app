@@ -280,7 +280,17 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-        {!loading && <StreakCalendar items={items} />}
+        {!loading && items.length === 0 ? (
+          <div className="py-3 text-center">
+            <p className="text-sm font-semibold text-[#8892aa]">No streak yet.</p>
+            <p className="text-xs text-[#4a5568] mt-1">Make your first prediction today to start one.</p>
+            <a href="/" className="inline-block mt-3 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
+              Go predict →
+            </a>
+          </div>
+        ) : (
+          !loading && <StreakCalendar items={items} />
+        )}
         {streakAtRisk && (
           <p className="text-[11px] text-amber-400 mt-2">⚠️ Predict today to keep your streak alive!</p>
         )}
@@ -371,8 +381,18 @@ export default function ProfilePage() {
             {[1, 2, 3].map(i => <div key={i} className="h-14 rounded-lg skeleton" />)}
           </div>
         ) : items.length === 0 ? (
-          <div className="py-10 text-center">
-            <p className="text-[#4a5568] text-sm">No predictions yet</p>
+          <div className="py-10 text-center px-6">
+            <p className="text-2xl mb-2">🎯</p>
+            <p className="text-sm font-semibold text-[#8892aa]">No predictions yet</p>
+            <p className="text-xs text-[#4a5568] mt-1 leading-relaxed">
+              Every pick you make shows up here — wins, losses, and everything in between.
+            </p>
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-full hover:bg-indigo-500/20 transition-colors"
+            >
+              Make your first pick →
+            </a>
           </div>
         ) : (
           <div className="divide-y divide-[#1e2438]">
