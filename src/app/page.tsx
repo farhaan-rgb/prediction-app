@@ -30,6 +30,18 @@ export default function HomePage() {
   const [filter, setFilter] = useState<LeagueFilter>('all')
 
   useEffect(() => { fetchQuestions() }, [])
+
+  useEffect(() => {
+    if (!loading && questions.length > 0) {
+      const saved = sessionStorage.getItem('predictit_scroll')
+      if (saved) {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: parseInt(saved), behavior: 'instant' })
+          sessionStorage.removeItem('predictit_scroll')
+        })
+      }
+    }
+  }, [loading, questions.length])
   useEffect(() => {
     if (user) fetchUserPredictions()
     else setPredictions({})

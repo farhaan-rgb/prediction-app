@@ -28,6 +28,28 @@ async function jsonComplete(system: string, user: string): Promise<any> {
   return JSON.parse(resp.choices[0].message.content ?? '{}')
 }
 
+async function qualityCheck(questions: any[]): Promise<any[]> {
+  if (!questions.length) return questions
+  const results: any[] = []
+  for (let i = 0; i < questions.length; i += 7) {
+    const batch = questions.slice(i, i + 7)
+    const resp = await jsonComplete(
+      `You are a prediction question quality reviewer. Return JSON.
+For each question, check ALL of these rules:
+1. The title must be a specific, self-contained question ending with "?" — a user must know exactly what they are predicting from the title alone, without reading the context.
+2. If options are "Yes" / "No", the title MUST ask a clear yes/no question (e.g. "Will X happen by [date]?"). A title like "Future of X" or "X Direction" with Yes/No options is invalid.
+3. Options must directly and unambiguously answer the title question. Vague options like "Maybe" are invalid.
+4. Titles must be specific: include the subject, what is being predicted, and a rough timeframe.
+
+Rewrite any failing question's title (and fix options if needed). Do NOT drop questions.
+Return JSON: { "questions": [ ...same structure, corrected ] }`,
+      `Review and fix these ${batch.length} prediction questions:\n${JSON.stringify(batch, null, 2)}`
+    )
+    results.push(...(resp.questions ?? batch))
+  }
+  return results
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -236,11 +258,14 @@ Respond with JSON: { "questions": [...] }`,
 
     if (!allGenerated.length) throw new Error('No questions generated')
 
+    // Phase 4b: Quality check
+    const checkedQuestions = await qualityCheck(allGenerated)
+
     // Phase 5: Clear + insert
     await supabase.from('questions').delete().eq('status', 'open')
 
     const now = new Date()
-    const rows = allGenerated.map(q => ({
+    const rows = checkedQuestions.map(q => ({
       title: q.title,
       category: q.category,
       question_type: q.question_type ?? null,

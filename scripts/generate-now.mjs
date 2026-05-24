@@ -46,6 +46,34 @@ async function jsonComplete(systemPrompt, userPrompt) {
   return JSON.parse(resp.choices[0].message.content ?? '{}')
 }
 
+async function qualityCheck(questions) {
+  if (!questions.length) return questions
+  const results = []
+  // Process in batches of 7 to keep prompt size manageable
+  for (let i = 0; i < questions.length; i += 7) {
+    const batch = questions.slice(i, i + 7)
+    const resp = await jsonComplete(
+      `You are a prediction question quality reviewer. Return JSON.
+For each question, check ALL of these rules:
+1. The title must be a specific, self-contained question ending with "?" — a user must know exactly what they are predicting from the title alone, without reading the context.
+2. If options are "Yes" / "No", the title MUST ask a clear yes/no question (e.g. "Will X happen by [date]?"). A title like "Future of X" or "X Direction" with Yes/No options is invalid.
+3. Options must directly and unambiguously answer the title question. Vague options like "Maybe" are invalid.
+4. Titles must be specific: include the subject, what is being predicted, and a rough timeframe. No headlines, no topic labels.
+
+Bad → Good rewrites:
+- "Future of Indian Crypto Regulations" + ["Yes","No"] → "Will RBI ease crypto banking restrictions in India this week?" + ["Yes","No"]
+- "NIFTY Direction Today" + ["Up","Down"] → "Will NIFTY50 close in the green today?" + ["Yes, closes up","No, closes down"]
+- "Movie Collection This Weekend" + ["High","Low"] → "Will [Film] cross ₹50Cr in its opening weekend?" + ["Yes, above ₹50Cr","No, below ₹50Cr"]
+
+Rewrite any failing question's title (and fix options if needed). Do NOT drop questions.
+Return JSON: { "questions": [ ...same structure, corrected ] }`,
+      `Review and fix these ${batch.length} prediction questions:\n${JSON.stringify(batch, null, 2)}`
+    )
+    results.push(...(resp.questions ?? batch))
+  }
+  return results
+}
+
 console.log(`\n=== PredictIt Question Generator ===`)
 console.log(`Time: ${nowIST}`)
 console.log(`Day: ${dayName} | Weekday: ${isWeekday} | Friday: ${isFriday}\n`)
@@ -299,9 +327,14 @@ Rules:
 const caQs = caResp.questions ?? []
 allGenerated.push(...caQs)
 console.log(`  Current Affairs: ${caQs.length} questions`)
-console.log(`\nTotal: ${allGenerated.length} questions generated.\n`)
+console.log(`\nTotal: ${allGenerated.length} questions generated.`)
 
 if (!allGenerated.length) throw new Error('No questions generated')
+
+// ─── PHASE 4b: Quality check ─────────────────────────────────────────────────
+console.log('Phase 4b: Quality checking questions...')
+allGenerated = await qualityCheck(allGenerated)
+console.log(`  ${allGenerated.length} questions passed quality review.\n`)
 
 // ─── PHASE 5: Clear existing + insert ────────────────────────────────────────
 console.log('Phase 5: Clearing existing open questions...')

@@ -177,7 +177,11 @@ export default function QuestionCard({ question, prediction, onPredicted, onExpi
         </div>
 
         {/* Title */}
-        <Link href={`/questions/${question.id}`} className="group flex items-start justify-between gap-2 mb-1">
+        <Link
+          href={`/questions/${question.id}`}
+          onClick={() => sessionStorage.setItem('predictit_scroll', String(window.scrollY))}
+          className="group flex items-start justify-between gap-2 mb-1"
+        >
           <h3 className="text-[15px] font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors">
             {question.title}
           </h3>
